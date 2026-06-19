@@ -6,3 +6,4 @@ export * from './pack-models/tcg.schema';
 export * from './pack-models/blind-box.schema';
 export * from './pack-models/figure.schema';
 export * from './pack-models/registry';
+export * from './dto/collection.dto';
