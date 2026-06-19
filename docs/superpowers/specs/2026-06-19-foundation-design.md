@@ -91,12 +91,11 @@ chumineo-app/
 │           ├── enums/
 │           ├── dto/
 │           └── pack-models/  # per-category Zod schemas + registry
-├── prisma/                   # schema.prisma + migrations (or apps/api/prisma)
 ├── docs/
 │   ├── FINDINGS.md
 │   ├── ENDPOINT_PERMISSIONS.md
 │   └── superpowers/{specs,plans}/
-├── docker-compose.yml        # db (pg16) · redis · api · web · mailpit
+├── docker-compose.yml        # infra only: db (pg16) · redis · mailpit
 ├── makefile
 ├── turbo.json
 ├── pnpm-workspace.yaml
@@ -112,9 +111,10 @@ The empty `backend/` and `frontend/` scaffold dirs are replaced by `apps/`.
 `test-backend-unit[-cov]`, `teste2e[-<module>]`, `test-frontend-unit[-cov]`,
 `test-frontend-e2e`, `test-all`, `test-coverage-check`, `pr-check`.
 
-**docker-compose services:** `chumineo-db` (postgres:16), `chumineo-redis`,
-`chumineo-api`, `chumineo-web`, `chumineo-mailpit` (dev mail sink; Resend in prod).
-Named volumes preserve db data + node_modules across `restart`.
+**docker-compose services (Phase 0 = infra only):** `sobrebox-db` (postgres:16),
+`sobrebox-redis`, `sobrebox-mailpit` (dev mail sink; Resend in prod). `api`/`web`
+run on host in Phase 0 for fast TDD; they get containerized (added as compose
+services) when we deploy. A named volume preserves db data across `restart`.
 
 ---
 
