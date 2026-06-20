@@ -40,7 +40,7 @@ Decidida tras un review adversarial; **no desviarse**:
 2. **CommonJS en `apps/api` y `packages/shared`.** Sin `"type": "module"`, **sin extensiones `.js`** en imports. El ts-jest por defecto de NestJS funciona tal cual.
 3. **El seed corre con `tsx`** (no ts-node).
 4. **`apps/web` (Next 15)** usa resolución Bundler por defecto + `transpilePackages: ['@sobrebox/shared']`.
-5. **Recompila `shared` antes de que cualquier consumidor lo use:** `make build-shared` (o `pnpm --filter @sobrebox/shared run build`). Los targets de test del makefile y `make fixtures` lo hacen automáticamente.
+5. **Recompila `shared` antes de que cualquier consumidor lo use:** `pnpm build:shared`. Los scripts de test/cobertura (vía turbo `^build`) y `pnpm db:seed` lo hacen automáticamente.
 6. **Prisma fijado a la v6.** Prisma 7 genera un cliente ESM incompatible con la `api` CommonJS. No subir a 7 sin migrar el módulo a ESM.
 
 ---
@@ -142,37 +142,38 @@ No aplica a: cambios puramente visuales (CSS/Tailwind), primitivas shadcn, spike
 
 | Cambio toca | Correr antes de declarar éxito |
 |---|---|
-| service/controller backend | `make test-backend-unit` (+ `make teste2e` si cruza módulos) |
-| flujo backend e2e | `make teste2e` |
-| componente/hook/util frontend | `make test-frontend-unit` |
-| algo ambiguo o grande | `make test-all` |
+| service/controller backend | `pnpm --filter @sobrebox/api test` (+ `pnpm test:e2e` si cruza módulos) |
+| flujo backend e2e | `pnpm test:e2e` |
+| componente/hook/util frontend | `pnpm --filter @sobrebox/web test` |
+| algo ambiguo o grande | `pnpm test:all` |
 
 ## Coverage gate (OBLIGATORIO antes de PR)
 
-**80%** en statements/branches/functions/lines, en `api`, `web` y `shared`. Antes de abrir PR: `make test-coverage-check` (debe salir limpio). **No bajar el umbral**; excluir con justificación en config solo para infra (cliente Prisma, migraciones, `seed.ts`, `main.ts`, `*.module.ts`, `prisma.service.ts`, generados de shadcn). `stats/pull-rate.service.ts` ≥90%.
+**80%** en statements/branches/functions/lines, en `api`, `web` y `shared`. Antes de abrir PR: `pnpm pr-check` (= `pnpm lint` + `pnpm test:cov`, que corre la cobertura de los 3 paquetes vía turbo; debe salir limpio). **No bajar el umbral**; excluir con justificación en config solo para infra (cliente Prisma, migraciones, `seed.ts`, `main.ts`, `*.module.ts`, `prisma.service.ts`, generados de shadcn). `stats/pull-rate.service.ts` ≥90%.
 
 Tests: **Jest + supertest** (api), **Vitest + Testing Library + jsdom** (web y shared), **Playwright** _(diferido a la épica 3 — animación de apertura)_. Archivos `*.spec.ts` (backend) / `*.test.tsx` (frontend), colocados junto al fuente.
 
 ---
 
-## Dev workflow (makefile envuelve docker + pnpm + prisma)
+## Dev workflow (scripts en `package.json` — cross-platform, sin `make`)
 
 ```bash
-make up                  # levanta infra (db pg16, redis, mailpit)
-make down / make restart # parar / reiniciar
-make migration-run       # aplica migraciones (prisma migrate deploy)
-make migrate name=Nombre # crea+aplica migración nueva (prisma migrate dev)
-make fixtures            # build de shared + seed de la BD
-make build-shared        # compila packages/shared a dist/
-make shell-db            # psql dentro del contenedor
-make test-backend-unit   # jest (api)         | make teste2e (e2e)
-make test-frontend-unit  # vitest (web)
-make test-coverage-check # gate 80% en api + web (build de shared incluido)
-make pr-check            # lint + coverage-check
-make lint                # turbo run lint
+pnpm install             # instala + genera el cliente Prisma (postinstall de api)
+pnpm infra:up            # crea .env si falta + levanta infra (db pg16, redis, mailpit)
+pnpm infra:down          # parar   | pnpm infra:restart | pnpm infra:clean (borra volúmenes)
+pnpm db:deploy           # aplica migraciones (prisma migrate deploy)
+pnpm db:migrate          # crea+aplica migración nueva (pide el nombre)
+pnpm db:seed             # build de shared + seed de la BD
+pnpm db:shell            # psql dentro del contenedor
+pnpm build:shared        # compila packages/shared a dist/
+pnpm test                # unit de los 3 paquetes (turbo)     | pnpm test:e2e (e2e api)
+pnpm test:cov            # gate de cobertura 80% (3 paquetes)  | pnpm test:all (unit + e2e)
+pnpm pr-check            # lint + cobertura   | pnpm lint   | pnpm type-check
 ```
 
-Dev en host: `pnpm --filter @sobrebox/api run start:dev` y `pnpm --filter @sobrebox/web run dev` (web en :3001, api en :3000), con la infra arriba.
+Primer arranque (incl. clon nuevo): `pnpm install` → `pnpm infra:up` → `pnpm db:deploy` → `pnpm db:seed`. Dev en host: `pnpm --filter @sobrebox/api start:dev` (api :3000) y `pnpm --filter @sobrebox/web dev` (web :3001), con la infra arriba.
+
+> Los comandos que tocan la BD cargan el `.env` raíz vía `dotenv-cli`; `docker compose` lo lee solo. Sin dependencia de `make` (funciona en Windows/macOS/Linux). Nota: `pnpm up`/`pnpm setup` son comandos internos de pnpm — por eso los scripts se llaman `infra:up` y `bootstrap`.
 
 ---
 
@@ -220,9 +221,9 @@ Marca UserInventory en venta → crea Listing → otro usuario crea ListingOffer
 - **No bajar el gate de cobertura** — excluir con justificación, nunca silenciosamente.
 - **No usar `any`** — usar `unknown` + type guards o los tipos del dominio.
 - **Sin strings hardcodeados de enum** — usar siempre los enums de `packages/shared` (`Rarity`, `CollectionCategory`, …). Un string de enum suelto es un bug.
-- **Entidades de BD en `apps/api/prisma/schema.prisma`** — fuente única. Migraciones con `make migrate name=…`; nunca editar SQL de migración a mano salvo data-migrations conscientes.
+- **Entidades de BD en `apps/api/prisma/schema.prisma`** — fuente única. Migraciones con `pnpm db:migrate`; nunca editar SQL de migración a mano salvo data-migrations conscientes.
 - **DTOs/enums/schemas Zod en `packages/shared`** — nunca duplicar (excepto los enums de Prisma, que están sancionados y guardados por el enum-parity test). Si `web` necesita tipar una respuesta, importa de shared.
-- **Recompilar `shared`** (`make build-shared`) tras editarlo, o api/web/seed importarán código viejo.
+- **Recompilar `shared`** (`pnpm build:shared`) tras editarlo, o api/web/seed importarán código viejo.
 - **Pull rates siempre en `stats/`** — empírico en `stats/pull-rate.service.ts`, cache Redis TTL 1h. Nunca en el controller ni en el frontend.
 - **Imágenes siempre vía `storage/storage.service.ts`** — la API devuelve URLs firmadas de R2, nunca sirve binarios.
 - **Commits en inglés**, Conventional Commits. Scope = módulo Nest o carpeta de componentes. Ej: `feat(stats): add empirical pull rate endpoint`.

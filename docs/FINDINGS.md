@@ -4,8 +4,9 @@
 
 ## Monorepo / build
 
-- La infra (db/redis/mailpit) corre en `docker-compose`; en Fase 0 `api`/`web` corren en host. Para e2e/seed: `make up` → `make migration-run` → `make fixtures` primero.
-- **`@sobrebox/shared` se COMPILA** (`tsc` → `dist`, CommonJS) y se consume como JS compilado. **Recompílalo (`make build-shared`) tras editarlo** o `api`/`web`/seed importarán código viejo. Los targets de test del makefile y `make fixtures` lo compilan automáticamente.
+- Los comandos del repo viven en `package.json` (cross-platform, sin `make`). Ojo: `infra:up`/`bootstrap` se llaman así porque `pnpm up` (= update) y `pnpm setup` son comandos internos de pnpm.
+- La infra (db/redis/mailpit) corre en `docker-compose`; en Fase 0 `api`/`web` corren en host. Para e2e/seed: `pnpm infra:up` → `pnpm db:deploy` → `pnpm db:seed` primero.
+- **`@sobrebox/shared` se COMPILA** (`tsc` → `dist`, CommonJS) y se consume como JS compilado. **Recompílalo (`pnpm build:shared`) tras editarlo** o `api`/`web`/seed importarán código viejo. Los scripts de test/cobertura (turbo `^build`) y `pnpm db:seed` lo compilan automáticamente.
 - `api` y `shared` son **CommonJS, sin extensiones `.js`** en imports. `web` usa resolución Bundler de Next + `transpilePackages: ['@sobrebox/shared']`.
 - El seed corre con **`tsx`** (no ts-node) para poder importar `@sobrebox/shared`.
 
@@ -13,9 +14,9 @@
 
 - **Prisma fijado a la v6.** Prisma 7 cambia el generador por defecto a `prisma-client` con cliente **ESM** + `prisma.config.ts`, incompatible con la `api` CommonJS (`ERR_REQUIRE_ESM`). No subir a 7 sin migrar el módulo a ESM. Generador = `prisma-client-js`.
 - Las **entidades** viven en `apps/api/prisma/schema.prisma` (fuente única). El cliente generado va a `node_modules/@prisma/client` (no se commitea); las migraciones SQL sí se commitean.
-- El cliente se genera en `pnpm install` vía el `postinstall: "prisma generate"` de `apps/api` (un clon limpio queda listo sin pasos extra). Si tocas el schema, `make migrate name=…` (o `pnpm --filter @sobrebox/api exec prisma generate`) lo regenera. Ojo: `make migration-run` usa `prisma migrate deploy`, que **no** regenera.
-- **Carga de `.env` en runtime:** la `api` usa `@nestjs/config` (`ConfigModule.forRoot` en `app.module.ts`) que carga el `.env` **raíz** (`../../.env`) al arrancar; las vars ya presentes en el entorno ganan (las que exporta `make` tienen prioridad). Por eso `start:dev`/e2e funcionan sin depender de un `apps/api/.env` hecho a mano.
-- Los comandos Prisma **CLI** (`prisma migrate/generate`) vía `make` heredan `DATABASE_URL` (el makefile hace `include .env` + `export`). Corriendo el CLI a pelo fuera de make, exporta antes: `set -a && . ./.env && set +a`.
+- El cliente se genera en `pnpm install` vía el `postinstall: "prisma generate"` de `apps/api` (un clon limpio queda listo sin pasos extra). Si tocas el schema, `pnpm db:migrate` (o `pnpm --filter @sobrebox/api exec prisma generate`) lo regenera. Ojo: `pnpm db:deploy` usa `prisma migrate deploy`, que **no** regenera.
+- **Carga de `.env` en runtime:** la `api` usa `@nestjs/config` (`ConfigModule.forRoot` en `app.module.ts`) que carga el `.env` **raíz** (`../../.env`) al arrancar; las vars ya presentes en el entorno ganan. Por eso `start:dev`/e2e funcionan sin depender de un `apps/api/.env` hecho a mano.
+- Los scripts `pnpm db:*` y `pnpm test:e2e` cargan el `.env` raíz con `dotenv-cli`, y `docker compose` lee `.env` solo. Corriendo el CLI de Prisma a pelo (sin los scripts), exporta antes: `set -a && . ./.env && set +a` (o `dotenv -e .env -- prisma …`).
 - Los campos `Decimal` de Prisma (`officialPullRate`, `price`) **serializan como STRING** sobre HTTP — modélalos como `z.string()` (o coerce) en los DTOs de shared, nunca `number`.
 - Enums Prisma (schema) y enums TS (shared) están **duplicados a propósito** (Prisma no referencia enums TS). `apps/api/src/catalog/enum-parity.spec.ts` falla si divergen.
 
@@ -27,4 +28,4 @@
 
 ## Pendiente (Playwright)
 
-- Playwright (e2e de frontend) está **declarado pero diferido a la épica 3** (animación de apertura). `make test-frontend-e2e` es un no-op por ahora.
+- Playwright (e2e de frontend) está **declarado pero diferido a la épica 3** (animación de apertura). Aún no hay script de frontend-e2e.
