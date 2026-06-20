@@ -1,1 +1,23 @@
 pnpm lint && pnpm type-check && pnpm test
+
+# Keep graphify-out/ in sync with the code on every push. `graphify update`
+# re-extracts changed code files and rebuilds the graph offline (no LLM call).
+# Drift is reported as a warning only — it never blocks the push.
+if command -v graphify >/dev/null 2>&1; then
+  REPO_ROOT=$(git rev-parse --show-toplevel)
+  cd "$REPO_ROOT" || exit 1
+  echo "→ Updating graphify index..."
+  if graphify update .; then
+    set -- graphify-out/graph.json graphify-out/GRAPH_REPORT.md graphify-out/manifest.json
+    if ! git diff --quiet -- "$@" 2>/dev/null; then
+      echo "⚠ graphify artifacts drifted after update — push proceeds; commit if desired:" >&2
+      git -P status --short -- "$@" >&2
+    else
+      echo "✓ graphify index up-to-date"
+    fi
+  else
+    echo "⚠ graphify update failed — push proceeds" >&2
+  fi
+else
+  echo "warning: graphify CLI not installed; skipping graph update" >&2
+fi

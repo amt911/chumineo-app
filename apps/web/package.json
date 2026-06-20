@@ -3,9 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack -p 3001",
+    "dev": "node scripts/dev.mjs",
+    "dev:tailscale": "node scripts/dev.mjs --tailscale",
     "build": "next build --turbopack",
-    "start": "next start -p 3001",
+    "start": "node scripts/dev.mjs --start",
     "lint": "eslint",
     "test": "vitest run",
     "test:cov": "vitest run --coverage",
