@@ -1,32 +1,47 @@
 # SobreBox — Claude Guide
 
+Plataforma para llevar recuento de cajas/sobres sorpresa coleccionables (cartas TCG, Funko, blind boxes…), ver pull rates oficiales y empíricos de la comunidad, gestionar inventario y wishlist, y comprar / vender / intercambiar ítems en un marketplace.
+
 ## Start here
 
-Run `/graphify` before each session. The persistent graph at `graphify-out/graph.json` summarizes architecture, dependencies, and cross-cutting concepts without re-reading the repo each time.
+1. Ejecuta `/graphify` antes de cada sesión. El grafo persistente en `graphify-out/graph.json` resume arquitectura, dependencias y conceptos transversales sin re-leer el repo.
+2. Lee `docs/FINDINGS.md` **antes** de depurar o de tocar el build — recoge gotchas no obvios (estrategia de módulos, Prisma, infra). **Convención:** cuando descubras algo no obvio que costó tiempo y no se deduce del código, añade una entrada corta a `docs/FINDINGS.md`.
+3. Permisos de endpoints: `docs/ENDPOINT_PERMISSIONS.md` es la referencia autoritativa. Mantenla al día en el mismo cambio que añada/modifique endpoints.
 
-## ⚡ graphify — use every session
+## ⚡ graphify — cada sesión
 
+```text
+/graphify            # primera vez (construye el grafo)
+/graphify --update   # incremental (solo re-extrae archivos cambiados)
+/graphify query "<pregunta>"    # preguntas de arquitectura sin abrir N archivos
+/graphify explain "<nombre>"    # localizar un concepto o símbolo
+/graphify path "A" "B"          # ruta de dependencia entre dos módulos
 ```
-/graphify            # first run (builds graph from scratch)
-/graphify --update   # incremental update (only re-extracts changed files)
-/graphify query "<question>"    # architecture questions instead of opening multiple files
-/graphify explain "<name>"      # locate a concept or symbol
-/graphify path "A" "B"          # dependency path between two modules
-```
 
-Outputs in `graphify-out/`: `graph.json` (source of truth), `GRAPH_REPORT.md` (god nodes, communities, surprising connections), `graph.html` (interactive view).
+Salida en `graphify-out/`: `graph.json` (fuente de verdad), `GRAPH_REPORT.md`, `graph.html`. Ejecuta `/graphify --update` al final si tocaste docs o imágenes (los cambios de código se reconstruyen vía hook si está instalado).
 
-Run `/graphify --update` at end of session if you touched docs or images (code changes rebuild via hook if installed).
+## ⚡ superpowers — siempre que aplique
 
-## ⚡ superpowers — use whenever applicable
+Prefiere **superpowers** sobre enfoques ad-hoc. Si hay aunque sea una pequeña probabilidad de que una skill aplique, invócala vía `Skill` antes de actuar (incluso antes de preguntar).
 
-Always prefer **superpowers** skills over ad-hoc approaches. If there's even a small chance a skill applies to the task, invoke it via the `Skill` tool before acting (including before clarifying questions).
+- **Process skills primero** — `brainstorming` antes de trabajo creativo/feature, `systematic-debugging` antes de arreglar bugs, `test-driven-development` antes de escribir implementación.
+- **Luego implementation skills** — guían la ejecución.
+- **Verificar antes de declarar hecho** — `verification-before-completion` / `requesting-code-review` antes de mergear.
 
-- **Process skills first** — `brainstorming` before creative/feature work, `systematic-debugging` before fixing bugs, `test-driven-development` before writing implementation.
-- **Then implementation skills** — domain-specific skills guide execution.
-- **Verify before claiming done** — `verification-before-completion` / `requesting-code-review` before merging.
+Las instrucciones del usuario siempre tienen prioridad sobre las skills; las skills sobreescriben el comportamiento por defecto.
 
-User instructions always take precedence over skills; skills override default behavior.
+---
+
+## Estrategia de módulos (LEER — es la fuente de verdad)
+
+Decidida tras un review adversarial; **no desviarse**:
+
+1. **`@sobrebox/shared` se COMPILA, no se consume como TS crudo.** Tiene un `build` con `tsc` que emite `dist/` (CommonJS + `.d.ts`); `main`/`types`/`exports` apuntan a `dist/`. Los consumidores (`api`, `web`, el seed) lo importan como JS compilado.
+2. **CommonJS en `apps/api` y `packages/shared`.** Sin `"type": "module"`, **sin extensiones `.js`** en imports. El ts-jest por defecto de NestJS funciona tal cual.
+3. **El seed corre con `tsx`** (no ts-node).
+4. **`apps/web` (Next 15)** usa resolución Bundler por defecto + `transpilePackages: ['@sobrebox/shared']`.
+5. **Recompila `shared` antes de que cualquier consumidor lo use:** `make build-shared` (o `pnpm --filter @sobrebox/shared run build`). Los targets de test del makefile y `make fixtures` lo hacen automáticamente.
+6. **Prisma fijado a la v6.** Prisma 7 genera un cliente ESM incompatible con la `api` CommonJS. No subir a 7 sin migrar el módulo a ESM.
 
 ---
 
@@ -37,204 +52,127 @@ User instructions always take precedence over skills; skills override default be
 | Tech | Versión | Rol |
 |------|---------|-----|
 | **NestJS** | v10 | Framework principal — módulos, DI, guards, interceptors |
-| **TypeORM** | v0.3 | ORM — entities, repositories, migrations |
+| **Prisma** | v6 | ORM — schema único, cliente generado, migraciones |
 | **PostgreSQL** | 16 | Base de datos principal |
-| **Redis** (via ioredis) | — | Cache de estadísticas de pull rates; cola de jobs (BullMQ) |
-| **Passport + JWT** | — | Auth; estrategias: `jwt`, `jwt-refresh`, `google`, `discord` |
-| **class-validator / class-transformer** | — | Validación y transformación de DTOs |
-| **Resend** | — | Emails transaccionales (verificación, notificaciones) |
-| **Cloudflare R2** (via @aws-sdk/client-s3) | — | Almacenamiento de imágenes (ítems, avatares, og-images) |
-| **BullMQ** | — | Jobs asíncronos: recalcular pull rates, generar imágenes OG |
+| **Zod** (`packages/shared`) | v3 | Validación de DTOs (`ZodValidationPipe`), compartida con el front |
+| **Redis** + **BullMQ** | — | _(planeado, épica stats)_ cache de pull rates + jobs asíncronos |
+| **Passport + JWT** | — | _(planeado, épica auth)_ estrategias `jwt`, `jwt-refresh`, `google`, `discord` |
+| **Resend** / **Mailpit** | — | _(planeado)_ email transaccional (Mailpit como sink en dev) |
+| **Cloudflare R2** (@aws-sdk/client-s3) + **Sharp** | — | _(planeado, épica storage)_ imágenes y procesado |
 
 ### Frontend (`apps/web/`)
 
 | Tech | Versión | Rol |
 |------|---------|-----|
-| **Next.js** | 15 (App Router) | SSR, RSC, server actions, routing |
-| **shadcn/ui** | — | Componentes base; customizados según design-system.md |
-| **motion-primitives** | — | Animaciones: apertura de sobres, AnimatedNumber, TextEffect |
+| **Next.js** | 15 (App Router) | SSR, RSC, routing |
+| **shadcn/ui** | — | Componentes base (en `components/ui/`, **NO editar a mano**); customizados según `design-system.md` |
 | **Tailwind CSS** | v4 | Estilos |
 | **TanStack Query** | v5 | Server state — cache de colecciones, inventario, marketplace |
-| **Zustand** | — | Client state — estado de apertura en curso, carrito, UI global |
+| **Zustand** | — | _(planeado)_ client state — apertura en curso, carrito, UI global |
+| **motion-primitives** | — | _(planeado)_ animaciones de apertura |
 
 ### Shared (`packages/shared/`)
 
-DTOs, enums, interfaces TypeScript compartidos entre `api` y `web`. Todo lo que cruza la frontera HTTP se define aquí y se importa en ambos lados.
+Enums + schemas Zod + DTOs TypeScript compartidos entre `api` y `web`. Todo lo que cruza la frontera HTTP se define aquí una sola vez. Se compila a `dist/` (ver Estrategia de módulos).
 
 ---
 
-## Estructura del monorepo
+## Estructura del monorepo (pnpm workspaces + Turborepo)
 
-```
+```text
 /
 ├── apps/
-│   ├── api/                        # NestJS backend
+│   ├── api/                        # NestJS 10 + Prisma 6 (CommonJS)
+│   │   ├── prisma/
+│   │   │   ├── schema.prisma        # ⭐ todas las entidades + enums (fuente única)
+│   │   │   ├── migrations/          # migraciones SQL (commiteadas)
+│   │   │   └── seed.ts              # seed de dev (corre con tsx)
 │   │   └── src/
-│   │       ├── auth/               # Auth module — JWT, OAuth, guards
-│   │       ├── users/              # Users module — perfil, follows, reviews
-│   │       ├── collections/        # Colecciones + items + pack types
-│   │       ├── openings/           # Registro de aperturas + opening items
-│   │       ├── inventory/          # Inventario personal + wishlists
-│   │       ├── marketplace/        # Listings, offers, transactions, chat
-│   │       ├── stats/              # Pull rates, leaderboards, personal stats
-│   │       ├── notifications/      # Sistema de notificaciones in-app + email
-│   │       ├── storage/            # Wrapper de R2 (upload, get signed URL)
-│   │       ├── db/
-│   │       │   ├── entities/       # TypeORM entities (una por archivo)
-│   │       │   └── migrations/     # Migraciones TypeORM generadas
-│   │       └── common/             # Guards, decorators, pipes, filters globales
-│   │
-│   └── web/                        # Next.js frontend
+│   │       ├── prisma/              # PrismaService + PrismaModule (@Global)
+│   │       ├── collections/         # GET /collections (slice de lectura)
+│   │       ├── catalog/             # enum-parity guard (prisma <-> shared)
+│   │       ├── common/              # ZodValidationPipe, guards, filtros
+│   │       ├── health/              # /health
+│   │       └── …                    # (planeado) auth, users, openings,
+│   │                                #  inventory, marketplace, stats,
+│   │                                #  notifications, storage
+│   └── web/                        # Next.js 15 (App Router)
 │       ├── app/
-│       │   ├── (auth)/             # /login, /register, /verify
-│       │   └── (app)/              # Rutas autenticadas
-│       │       ├── dashboard/
-│       │       ├── collections/    # Catálogo + detalle de colección
-│       │       ├── open/           # Flujo de apertura de sobre
-│       │       ├── inventory/      # Inventario + wishlist
-│       │       ├── marketplace/    # Browse + listing detail
-│       │       ├── profile/[username]/
-│       │       └── stats/
+│       │   ├── collections/         # página + error boundary
+│       │   ├── providers.tsx        # QueryClientProvider
+│       │   └── layout.tsx
 │       ├── components/
-│       │   ├── ui/                 # Generados por shadcn — NO EDITAR MANUALMENTE
-│       │   ├── items/              # ItemCard, RarityBadge, PullRateBar
-│       │   ├── openings/           # OpeningAnimation, OpeningHistory, Feed
-│       │   ├── collections/        # CollectionCard, CollectionProgress
-│       │   ├── marketplace/        # MarketplaceCard, OfferModal, ChatPanel
-│       │   ├── stats/              # StatCard, PullRateChart, Leaderboard
-│       │   └── layout/             # Header, Sidebar, Footer, PageWrapper
+│       │   ├── ui/                  # shadcn — NO EDITAR MANUALMENTE
+│       │   └── collections/         # CollectionList (+ planeado: items, openings…)
 │       └── lib/
-│           ├── api.ts              # Fetch wrappers tipados (usa DTOs de shared)
-│           ├── query-keys.ts       # TanStack Query key factory
-│           ├── rarity.ts           # Helpers de rareza (color, label, orden)
-│           └── utils.ts
-│
+│           ├── api.ts               # fetch wrappers tipados (valida con schemas de shared)
+│           └── utils.ts             # cn() de shadcn
 └── packages/
-    └── shared/                     # DTOs, enums, tipos compartidos
-        ├── src/
-        │   ├── enums/              # Rarity, ListingType, Condition, etc.
-        │   └── dto/                # DTOs por módulo
-        └── package.json
+    └── shared/                     # compila a dist/ (CommonJS)
+        └── src/
+            ├── enums/              # Rarity, CollectionCategory, CollectionSource, CollectionStatus
+            ├── pack-models/        # schemas Zod por categoría + registry (validatePackModel)
+            └── dto/                # collectionResponseSchema, …
 ```
+
+> **Entidades de BD = `apps/api/prisma/schema.prisma`** (no hay carpeta `entities/`; es Prisma, no TypeORM). Los tipos los genera Prisma en `node_modules/@prisma/client` (no se commitea). La infra (Postgres/Redis/Mailpit) corre en `docker-compose`; en Fase 0 `api`/`web` corren en host.
 
 ---
 
-## Commands
+## Modelo de catálogo (agnóstico — enfoque C)
+
+- **Espina tipada** en Prisma (`Brand`, `Collection`, `CollectionItem`, `PackType`, `Opening`, `OpeningItem`, `UserInventory`, `CollectionRevision`, `Flag`). De aquí cuelgan stats/inventario/marketplace.
+- **Mecánica variable del sobre** en `PackType.packModel` (JSON), validada por categoría con un **registry de schemas Zod en `packages/shared/pack-models/`** (`validatePackModel`). Categorías: `TCG` (slots por rareza), `BLIND_BOX` (case + chase), `FIGURE` (items). Añadir categoría = enum + schema Zod + rama en pull-rate, sin tocar la espina.
+- **Pull rate oficial** (campo del ítem, manual/comunidad, suele ser `null`) vs **empírico** (calculado de `Opening` reales, ≥50 muestras, cache Redis 1h, recálculo BullMQ). El empírico se indexa por `CollectionItem.id` estable → inmune a ediciones de texto del wiki.
+- **Wiki abierto**: cualquier usuario logueado crea/edita; cada guardado = un `CollectionRevision` (versionado); moderación reactiva (`Flag` + revertir/lock). _(El subsistema completo de población — import por API, edición wiki, moderación — es la épica de catálogo.)_
+- **Enums duplicados a propósito**: Prisma no puede referenciar un enum TS, así que los enums viven en `schema.prisma` (capa BD) **y** en `packages/shared` (capa HTTP). `apps/api/src/catalog/enum-parity.spec.ts` falla si divergen. Es la única duplicación sancionada.
+
+---
+
+## TDD (OBLIGATORIO para lógica nueva)
+
+Para `services/`, `lib/`, schemas de shared, hooks custom y lógica de formularios:
+
+1. **Red** — test fallando que describe el comportamiento.
+2. **Green** — mínimo código para pasar.
+3. **Refactor** — limpiar sin romper verde.
+4. **Correr la suite relevante antes de declarar hecho.** No afirmar "funciona" sin ver tests verdes.
+
+No aplica a: cambios puramente visuales (CSS/Tailwind), primitivas shadcn, spikes (se borran o se testean antes de mergear).
+
+| Cambio toca | Correr antes de declarar éxito |
+|---|---|
+| service/controller backend | `make test-backend-unit` (+ `make teste2e` si cruza módulos) |
+| flujo backend e2e | `make teste2e` |
+| componente/hook/util frontend | `make test-frontend-unit` |
+| algo ambiguo o grande | `make test-all` |
+
+## Coverage gate (OBLIGATORIO antes de PR)
+
+**80%** en statements/branches/functions/lines, en `api`, `web` y `shared`. Antes de abrir PR: `make test-coverage-check` (debe salir limpio). **No bajar el umbral**; excluir con justificación en config solo para infra (cliente Prisma, migraciones, `seed.ts`, `main.ts`, `*.module.ts`, `prisma.service.ts`, generados de shadcn). `stats/pull-rate.service.ts` ≥90%.
+
+Tests: **Jest + supertest** (api), **Vitest + Testing Library + jsdom** (web y shared), **Playwright** _(diferido a la épica 3 — animación de apertura)_. Archivos `*.spec.ts` (backend) / `*.test.tsx` (frontend), colocados junto al fuente.
+
+---
+
+## Dev workflow (makefile envuelve docker + pnpm + prisma)
 
 ```bash
-# Instalar todas las dependencias desde root
-pnpm install
-
-# ── Backend ─────────────────────────────────────────────────────────────────
-
-cd apps/api
-
-pnpm run start:dev          # dev con hot reload
-pnpm run start:debug        # dev con debug port 9229
-pnpm run build              # compilar a dist/
-
-# Tests
-pnpm run test               # unit (Jest)
-pnpm run test:watch         # watch mode
-pnpm run test:cov           # coverage report (gate: 80%)
-pnpm run test:e2e           # e2e con supertest
-
-# Migraciones TypeORM
-pnpm run migration:generate -- src/db/migrations/NombreMigracion
-pnpm run migration:run
-pnpm run migration:revert
-pnpm run migration:show     # lista migraciones pendientes
-
-# ── Frontend ─────────────────────────────────────────────────────────────────
-
-cd apps/web
-
-pnpm run dev                # dev con Turbopack
-pnpm run build              # build de producción
-pnpm run start              # servidor de producción local
-
-# Tests
-pnpm run test               # Vitest
-pnpm run test:watch
-pnpm run test:cov           # coverage (gate: 80%)
-
-# ── Ambos desde root ─────────────────────────────────────────────────────────
-
-pnpm run build              # build ambas apps en paralelo
-pnpm run lint               # ESLint en todo el monorepo
-pnpm run type-check         # tsc --noEmit en ambas apps + shared
+make up                  # levanta infra (db pg16, redis, mailpit)
+make down / make restart # parar / reiniciar
+make migration-run       # aplica migraciones (prisma migrate deploy)
+make migrate name=Nombre # crea+aplica migración nueva (prisma migrate dev)
+make fixtures            # build de shared + seed de la BD
+make build-shared        # compila packages/shared a dist/
+make shell-db            # psql dentro del contenedor
+make test-backend-unit   # jest (api)         | make teste2e (e2e)
+make test-frontend-unit  # vitest (web)
+make test-coverage-check # gate 80% en api + web (build de shared incluido)
+make pr-check            # lint + coverage-check
+make lint                # turbo run lint
 ```
 
----
-
-## Tests y calidad
-
-**Backend:** Jest + supertest (e2e). Config: `apps/api/jest.config.ts`.
-
-**Frontend:** Vitest + Testing Library + jsdom. Config: `apps/web/vitest.config.ts`.
-
-Convención de archivos: `*.spec.ts` (backend), `*.test.tsx` (frontend), colocados junto al fuente.
-
-**Coverage gate: 80%** (statements / branches / functions / lines). No bajar el gate — excluir con justificación en config en lugar de reducir el umbral.
-
-### Qué testear por carpeta
-
-#### Backend (`apps/api/src/`)
-
-| Módulo | Qué testear |
-|--------|-------------|
-| `*/services/` | Lógica de negocio con repositorios mockeados. Caso feliz + cada error esperado. |
-| `*/controllers/` | Validación de DTOs, código HTTP correcto, guards aplicados (mock del guard). |
-| `stats/` | Cálculos de pull rates con datos sintéticos conocidos — **crítico, cobertura ≥90%**. |
-| `*/guards/` | Comportamiento con token válido, inválido y expirado. |
-| `auth/` | Flujo completo de login/refresh/revoke con repositorios mockeados. |
-
-#### Frontend (`apps/web/`)
-
-| Carpeta | Qué testear |
-|---------|-------------|
-| `lib/` | Funciones puras (rarity.ts, utils.ts) — sin mocks, deterministas. |
-| `components/items/` | ItemCard con todas las rarezas, estados hover/selected/locked. Verificar que los glows se aplican. |
-| `components/openings/` | Lógica de registro del ítem — no la animación. Mock de la llamada API. |
-| `components/marketplace/` | Formularios: validación, submit happy path, manejo de errores de API. |
-| `app/(app)/collections/` | RSC: mock de fetch, render correcto de lista de colecciones. |
-
-### TDD — obligatorio para nueva lógica
-
-Para `services/`, `lib/`, hooks custom, y lógica de formularios:
-
-1. **Red** — test fallando que describe el comportamiento esperado.
-2. **Green** — mínimo código para que pase.
-3. **Refactor** — limpiar sin romper verde.
-
-No aplica a: cambios puramente visuales (CSS, Tailwind classes), primitivas de UI (shadcn), spikes. Los spikes se borran o se añaden tests antes de mergear.
-
-### Convenciones operativas
-
-- **Global setup** `apps/web/vitest.setup.ts`: stub de `matchMedia`, `ResizeObserver`, `IntersectionObserver`, `window.URL.createObjectURL`. No redefinir por test.
-- **Split por aspecto** si un test file supera ~300 LoC: `.flow.test.ts`, `.errors.test.ts`, `.branches.test.ts`.
-- **Excluir con justificación** en config, nunca silenciosamente:
-  ```ts
-  // OpeningAnimation.tsx usa requestAnimationFrame y canvas 2D — cubrir via E2E con Playwright
-  exclude: ['src/components/openings/OpeningAnimation.tsx']
-  ```
-
----
-
-## Reglas de trabajo
-
-- **Superpowers primero** — invocar via `Skill` antes de actuar; process skills antes que implementation skills.
-- **No instalar paquetes sin preguntar** — el stack es intencional. Excepción: devDependencies de test evidentes (jest-mock-extended, etc.).
-- **TDD por defecto** para nueva lógica. No mergear lógica sin tests.
-- **No bajar el gate de cobertura** — excluir con justificación en config.
-- **No usar `any`** — usar `unknown` + type guards o los tipos correctos del dominio.
-- **Sin strings hardcodeados para rareza** — usar siempre el enum `Rarity` de `packages/shared`. Si aparece un string de rareza en cualquier otro sitio, es un bug.
-- **Pull rates siempre en `stats/`** — los cálculos de pull rate empírico se hacen en `stats/services/pull-rate.service.ts` y se cachean en Redis con TTL de 1 hora. Nunca calcular en el controller, nunca en el frontend.
-- **Imágenes siempre via `storage/storage.service.ts`** — nunca servir directamente desde la API. La API devuelve URLs firmadas de R2.
-- **TypeORM entities en `apps/api/src/db/entities/`** — una entidad por archivo, nombre en PascalCase, misma estructura que el ERD del proyecto.
-- **DTOs en `packages/shared`** — nunca duplicar un DTO. Si `web` necesita tipar una respuesta, importa el DTO de shared.
-- **Commits en inglés** con conventional commits: `feat(openings): add bulk opening flow`, `fix(stats): clamp pull rate below 100%`, `chore(deps): bump typeorm to 0.3.20`.
-- **Nunca hacer push** — dejar el push al desarrollador. Commits y branches se pueden crear libremente.
+Dev en host: `pnpm --filter @sobrebox/api run start:dev` y `pnpm --filter @sobrebox/web run dev` (web en :3001, api en :3000), con la infra arriba.
 
 ---
 
@@ -242,49 +180,58 @@ No aplica a: cambios puramente visuales (CSS, Tailwind classes), primitivas de U
 
 | Concepto | Descripción |
 |----------|-------------|
-| `Collection` | Un set/línea de colección: "Pokémon Escarlata y Púrpura - Llamas Obsidianas" |
-| `CollectionItem` | Ítem concreto dentro de una Collection, con rareza y pull rate |
-| `PackType` | Tipo de sobre/caja (Booster, Blister, Display) que pertenece a una Collection |
-| `Opening` | Registro de apertura de un PackType por un usuario en un momento concreto |
-| `OpeningItem` | Cada CollectionItem obtenido en una Opening (relación N-a-N con Opening) |
-| `UserInventory` | Todos los CollectionItems que posee un usuario, con cantidad y condición |
-| `Listing` | Anuncio en el marketplace — puede ser SELL, TRADE o GIVE |
-| `ListingOffer` | Oferta de un comprador sobre un Listing activo |
-| `Transaction` | Listing cerrado: la transacción completada entre seller y buyer |
+| `Collection` | Un set/línea: "Pokémon Escarlata y Púrpura - Llamas Obsidianas" |
+| `CollectionItem` | Ítem concreto dentro de una Collection, con rareza y pull rate (id estable) |
+| `PackType` | Tipo de sobre/caja; su `packModel` (JSON) define la mecánica por categoría |
+| `Opening` | Registro de apertura de un PackType por un usuario |
+| `OpeningItem` | Cada CollectionItem obtenido en una Opening |
+| `UserInventory` | CollectionItems que posee un usuario, con cantidad y condición |
+| `CollectionRevision` | Versión de una Collection (wiki) — para historial y revert |
+| `Flag` | Reporte de moderación sobre una Collection u otro objeto |
 | `Rarity` | Enum: `COMMON`, `UNCOMMON`, `RARE`, `ULTRA_RARE`, `SECRET`, `LIMITED` |
 | `Pull rate oficial` | Probabilidad publicada por el fabricante — puede ser null |
-| `Pull rate empírico` | Calculado a partir de Opening reales; requiere ≥ 50 muestras para mostrarse |
-| `Reputation Score` | Media ponderada de reviews recibidas como seller y buyer en Transactions |
+| `Pull rate empírico` | Calculado de Opening reales; requiere ≥50 muestras para mostrarse |
+| `Listing` / `ListingOffer` / `Transaction` | _(épica marketplace)_ anuncio / oferta / transacción cerrada |
+| `Reputation Score` | _(épica social)_ media ponderada de reviews como seller y buyer |
 
-### Flujo de apertura
+### Flujo de apertura _(épica openings)_
 
-```
-Usuario selecciona PackType
-  → Crea Opening (userId, packTypeId, openedAt)
-  → Selecciona CollectionItems obtenidos
-  → Crea OpeningItems (openingId, collectionItemId) por cada ítem
-  → Se upsert UserInventory (userId, collectionItemId, quantity++)
-  → BullMQ encola job de recálculo de pull rates para esa Collection
-  → Job actualiza cache Redis con nuevo pull rate empírico
+```text
+Selecciona PackType → crea Opening → selecciona CollectionItems obtenidos
+  → crea OpeningItems → upsert UserInventory (quantity++)
+  → BullMQ encola recálculo de pull rates → actualiza cache Redis
 ```
 
-### Flujo de marketplace
+### Flujo de marketplace _(épica marketplace)_
 
+```text
+Marca UserInventory en venta → crea Listing → otro usuario crea ListingOffer
+  → seller acepta → Listing PENDING + chat → ambos completan → Transaction
+  → ambos dejan Review → actualiza reputationScore
 ```
-Usuario marca UserInventory como forSale=true
-  → Crea Listing (type=SELL, userInventoryId, price)
-  → Otro usuario crea ListingOffer (listingId, buyerId, offeredPrice)
-  → Seller acepta → Listing.status=PENDING, se abre chat
-  → Ambos marcan completado → se crea Transaction, Listing.status=COMPLETED
-  → Ambos dejan Review → actualiza reputationScore de ambos
-```
+
+---
+
+## Reglas de trabajo
+
+- **Superpowers primero** — process skills antes que implementation skills.
+- **No instalar paquetes sin preguntar** — el stack es intencional. Excepción: devDependencies de test evidentes.
+- **TDD por defecto** para lógica nueva. No mergear lógica sin tests.
+- **No bajar el gate de cobertura** — excluir con justificación, nunca silenciosamente.
+- **No usar `any`** — usar `unknown` + type guards o los tipos del dominio.
+- **Sin strings hardcodeados de enum** — usar siempre los enums de `packages/shared` (`Rarity`, `CollectionCategory`, …). Un string de enum suelto es un bug.
+- **Entidades de BD en `apps/api/prisma/schema.prisma`** — fuente única. Migraciones con `make migrate name=…`; nunca editar SQL de migración a mano salvo data-migrations conscientes.
+- **DTOs/enums/schemas Zod en `packages/shared`** — nunca duplicar (excepto los enums de Prisma, que están sancionados y guardados por el enum-parity test). Si `web` necesita tipar una respuesta, importa de shared.
+- **Recompilar `shared`** (`make build-shared`) tras editarlo, o api/web/seed importarán código viejo.
+- **Pull rates siempre en `stats/`** — empírico en `stats/pull-rate.service.ts`, cache Redis TTL 1h. Nunca en el controller ni en el frontend.
+- **Imágenes siempre vía `storage/storage.service.ts`** — la API devuelve URLs firmadas de R2, nunca sirve binarios.
+- **Commits en inglés**, Conventional Commits. Scope = módulo Nest o carpeta de componentes. Ej: `feat(stats): add empirical pull rate endpoint`.
 
 ---
 
 ## Git & GitHub
 
-- **Commits y branches: crear libremente** — no preguntar antes de hacer commits o nuevas ramas.
-- **Nunca `git push`** — bajo ninguna circunstancia, tampoco `--force` ni `--force-with-lease`.
-- **GitHub via `gh`** — se pueden abrir PRs, issues, comentarios, labels si `gh` está disponible.
-- **Formato de commits:** Conventional Commits en inglés. Scope = nombre del módulo NestJS o carpeta de componentes. Ej: `feat(stats): add empirical pull rate endpoint`, `fix(items): correct rarity glow in dark mode`.
-- **Nomenclatura de ramas:** `feat/nombre-feature`, `fix/descripcion-bug`, `chore/tarea`.
+- **Commits y ramas: libremente** — no preguntar antes.
+- **Nunca `git push`** — bajo ninguna circunstancia, tampoco `--force` / `--force-with-lease`. El push lo hace el desarrollador.
+- **GitHub vía `gh`** — PRs, issues, comentarios, labels si `gh` está disponible (no implica push por tu parte más allá de lo que `gh` haga sobre una rama ya pusheada).
+- **Ramas:** `feat/nombre`, `fix/descripcion`, `chore/tarea`.
