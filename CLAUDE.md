@@ -177,6 +177,13 @@ Primer arranque (incl. clon nuevo): `pnpm install` → `pnpm infra:up` → `pnpm
 
 ---
 
+## CI & git hooks
+
+- **GitHub Actions** (`.github/workflows/ci.yml`): en cada PR y push a `main` corre `pnpm lint` + `pnpm type-check` + `pnpm test:cov` (3 paquetes) + el e2e contra un Postgres de servicio. Es el gate real de CI.
+- **Git hooks (husky)**: `pre-commit` → `lint-staged` (eslint + prettier solo sobre lo staged); `commit-msg` → `commitlint` (fuerza Conventional Commits); `pre-push` → `pnpm lint && pnpm type-check && pnpm test`. Bypass de emergencia: `git commit/push --no-verify`. Se activan solos tras `pnpm install` (script `prepare: husky`).
+
+---
+
 ## Dominio — conceptos clave
 
 | Concepto | Descripción |

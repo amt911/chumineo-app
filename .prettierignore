@@ -1,0 +1,8 @@
+pnpm-lock.yaml
+**/dist/
+**/.next/
+**/coverage/
+**/node_modules/
+graphify-out/
+apps/web/components/ui/
+apps/api/prisma/migrations/

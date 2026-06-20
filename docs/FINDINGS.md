@@ -5,6 +5,8 @@
 ## Monorepo / build
 
 - Los comandos del repo viven en `package.json` (cross-platform, sin `make`). Ojo: `infra:up`/`bootstrap` se llaman así porque `pnpm up` (= update) y `pnpm setup` son comandos internos de pnpm.
+- **Git hooks (husky)** se activan tras `pnpm install` (`prepare: husky`): `pre-commit`=lint-staged, `commit-msg`=commitlint (Conventional Commits), `pre-push`=lint+type-check+test. Bypass: `--no-verify`. `lint-staged`/prettier ignoran el lockfile y generados vía `.prettierignore`.
+- **CI** (`.github/workflows/ci.yml`) replica el gate (lint + type-check + test:cov) y corre el e2e contra un servicio Postgres cuyas credenciales coinciden con `.env.example` (sobrebox/sobrebox/sobrebox).
 - La infra (db/redis/mailpit) corre en `docker-compose`; en Fase 0 `api`/`web` corren en host. Para e2e/seed: `pnpm infra:up` → `pnpm db:deploy` → `pnpm db:seed` primero.
 - **`@sobrebox/shared` se COMPILA** (`tsc` → `dist`, CommonJS) y se consume como JS compilado. **Recompílalo (`pnpm build:shared`) tras editarlo** o `api`/`web`/seed importarán código viejo. Los scripts de test/cobertura (turbo `^build`) y `pnpm db:seed` lo compilan automáticamente.
 - `api` y `shared` son **CommonJS, sin extensiones `.js`** en imports. `web` usa resolución Bundler de Next + `transpilePackages: ['@sobrebox/shared']`.
