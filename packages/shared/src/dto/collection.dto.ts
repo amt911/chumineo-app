@@ -12,3 +12,6 @@ export const collectionResponseSchema = z.object({
   source: z.nativeEnum(CollectionSource),
 });
 export type CollectionResponseDto = z.infer<typeof collectionResponseSchema>;
+
+/** Schema for the `GET /collections` list payload — use to validate API responses. */
+export const collectionsResponseSchema = z.array(collectionResponseSchema);
