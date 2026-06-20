@@ -13,7 +13,9 @@
 
 - **Prisma fijado a la v6.** Prisma 7 cambia el generador por defecto a `prisma-client` con cliente **ESM** + `prisma.config.ts`, incompatible con la `api` CommonJS (`ERR_REQUIRE_ESM`). No subir a 7 sin migrar el módulo a ESM. Generador = `prisma-client-js`.
 - Las **entidades** viven en `apps/api/prisma/schema.prisma` (fuente única). El cliente generado va a `node_modules/@prisma/client` (no se commitea); las migraciones SQL sí se commitean.
-- Los comandos Prisma vía `make` heredan `DATABASE_URL` (el makefile hace `include .env` + `export`). Corriendo `prisma` a pelo fuera de make, exporta antes: `set -a && . ./.env && set +a`.
+- El cliente se genera en `pnpm install` vía el `postinstall: "prisma generate"` de `apps/api` (un clon limpio queda listo sin pasos extra). Si tocas el schema, `make migrate name=…` (o `pnpm --filter @sobrebox/api exec prisma generate`) lo regenera. Ojo: `make migration-run` usa `prisma migrate deploy`, que **no** regenera.
+- **Carga de `.env` en runtime:** la `api` usa `@nestjs/config` (`ConfigModule.forRoot` en `app.module.ts`) que carga el `.env` **raíz** (`../../.env`) al arrancar; las vars ya presentes en el entorno ganan (las que exporta `make` tienen prioridad). Por eso `start:dev`/e2e funcionan sin depender de un `apps/api/.env` hecho a mano.
+- Los comandos Prisma **CLI** (`prisma migrate/generate`) vía `make` heredan `DATABASE_URL` (el makefile hace `include .env` + `export`). Corriendo el CLI a pelo fuera de make, exporta antes: `set -a && . ./.env && set +a`.
 - Los campos `Decimal` de Prisma (`officialPullRate`, `price`) **serializan como STRING** sobre HTTP — modélalos como `z.string()` (o coerce) en los DTOs de shared, nunca `number`.
 - Enums Prisma (schema) y enums TS (shared) están **duplicados a propósito** (Prisma no referencia enums TS). `apps/api/src/catalog/enum-parity.spec.ts` falla si divergen.
 

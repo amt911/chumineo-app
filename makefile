@@ -7,7 +7,7 @@ export
 .PHONY: up down restart clean build-shared migrate migration-run fixtures \
         shell-db lint test-backend-unit test-backend-unit-cov teste2e \
         test-frontend-unit test-frontend-unit-cov test-frontend-e2e \
-        test-all test-coverage-check pr-check
+        test-shared-unit-cov test-all test-coverage-check pr-check
 
 up:            ## start infra (db, redis, mailpit)
 	docker compose up -d
@@ -40,6 +40,9 @@ fixtures: build-shared  ## seed db
 lint:
 	pnpm run lint
 
+test-shared-unit-cov:
+	pnpm --filter @sobrebox/shared run test:cov
+
 test-backend-unit: build-shared
 	pnpm --filter @sobrebox/api run test
 test-backend-unit-cov: build-shared
@@ -56,6 +59,6 @@ test-frontend-e2e:  ## Playwright deferred to epic 3
 
 test-all: test-backend-unit teste2e test-frontend-unit
 
-test-coverage-check: test-backend-unit-cov test-frontend-unit-cov
+test-coverage-check: test-shared-unit-cov test-backend-unit-cov test-frontend-unit-cov
 
 pr-check: lint test-coverage-check
