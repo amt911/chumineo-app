@@ -7,3 +7,6 @@ export * from './pack-models/blind-box.schema';
 export * from './pack-models/figure.schema';
 export * from './pack-models/registry';
 export * from './dto/collection.dto';
+export * from './schemas/auth.schema';
+export * from './dto/user.dto';
+export * from './dto/auth.dto';
