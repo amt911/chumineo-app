@@ -1,0 +1,46 @@
+{
+  "name": "sobrebox",
+  "private": true,
+  "packageManager": "pnpm@11.3.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "bootstrap": "node scripts/setup.mjs",
+    "build": "turbo run build",
+    "build:shared": "pnpm --filter @sobrebox/shared run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "type-check": "turbo run type-check",
+    "infra:up": "pnpm bootstrap && docker compose up -d",
+    "infra:down": "docker compose down",
+    "infra:restart": "pnpm infra:down && pnpm infra:up",
+    "infra:clean": "docker compose down -v",
+    "db:shell": "docker compose exec sobrebox-db psql -U sobrebox -d sobrebox",
+    "db:migrate": "pnpm bootstrap && dotenv -e .env -- pnpm --filter @sobrebox/api exec prisma migrate dev",
+    "db:deploy": "pnpm bootstrap && dotenv -e .env -- pnpm --filter @sobrebox/api exec prisma migrate deploy",
+    "db:seed": "pnpm bootstrap && pnpm build:shared && dotenv -e .env -- pnpm --filter @sobrebox/api run seed",
+    "test": "turbo run test",
+    "test:cov": "turbo run test:cov",
+    "test:e2e": "pnpm bootstrap && pnpm build:shared && dotenv -e .env -- pnpm --filter @sobrebox/api run test:e2e",
+    "test:all": "pnpm test && pnpm test:e2e",
+    "pr-check": "pnpm lint && pnpm test:cov",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": ["eslint --fix", "prettier --write"],
+    "*.{js,cjs,mjs,json,md,yml,yaml}": "prettier --write"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.0.2",
+    "@commitlint/config-conventional": "^21.0.2",
+    "dotenv-cli": "^11.0.0",
+    "eslint": "^10.5.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.7",
+    "prettier": "^3.3.0",
+    "turbo": "^2.1.0",
+    "typescript": "^5.6.0",
+    "typescript-eslint": "^8.61.1"
+  }
+}
