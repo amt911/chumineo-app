@@ -1459,14 +1459,8 @@ export class AuthService {
     const user = (await this.prisma.user.findUnique({
       where: { email: dto.email },
     })) as DbUser | null;
-    // Verify even when the user is missing (dummy hash) to avoid timing enumeration.
     const ok =
-      user !== null
-        ? await verifyPassword(user.passwordHash, dto.password)
-        : await verifyPassword(
-            '$argon2id$v=19$m=65536,t=3,p=4$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-            dto.password,
-          ).then(() => false);
+      user !== null && (await verifyPassword(user.passwordHash, dto.password));
     if (!user || !ok) {
       await this.redis.incrWithTtl(key, AUTH.lockoutWindowMin * 60);
       throw new UnauthorizedException('Invalid credentials');
@@ -2068,13 +2062,11 @@ import { UsersService } from './users.service';
 
 describe('UsersController', () => {
   const users = {
-    getPublicProfile: jest
-      .fn()
-      .mockResolvedValue({
-        username: 'neo',
-        avatarUrl: null,
-        memberSince: 'x',
-      }),
+    getPublicProfile: jest.fn().mockResolvedValue({
+      username: 'neo',
+      avatarUrl: null,
+      memberSince: 'x',
+    }),
   };
   let controller: UsersController;
 
@@ -2446,13 +2438,11 @@ describe('loginUser', () => {
   it('throws the server message on non-ok', async () => {
     vi.stubGlobal(
       'fetch',
-      vi
-        .fn()
-        .mockResolvedValue({
-          ok: false,
-          status: 401,
-          json: async () => ({ message: 'Invalid credentials' }),
-        }),
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 401,
+        json: async () => ({ message: 'Invalid credentials' }),
+      }),
     );
     await expect(
       loginUser({ email: 'a@b.com', password: 'x', rememberMe: false }),
@@ -2464,12 +2454,10 @@ describe('fetchPublicProfile', () => {
   it('returns the profile json', async () => {
     vi.stubGlobal(
       'fetch',
-      vi
-        .fn()
-        .mockResolvedValue({
-          ok: true,
-          json: async () => ({ username: 'neo' }),
-        }),
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ username: 'neo' }),
+      }),
     );
     await expect(fetchPublicProfile('neo')).resolves.toEqual({
       username: 'neo',
