@@ -1,0 +1,136 @@
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Req,
+  Res,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
+import type { Request, Response } from 'express';
+import {
+  AuthResponseDto,
+  loginSchema,
+  LoginDto,
+  MessageResponseDto,
+  PublicUserDto,
+  registerSchema,
+  RegisterDto,
+  resendVerificationSchema,
+  ResendVerificationDto,
+  verifySchema,
+  VerifyDto,
+} from '@sobrebox/shared';
+import { ZodValidationPipe } from '../common/zod-validation.pipe';
+import { AuthService } from './auth.service';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { CurrentUser, RequestUser } from './decorators/current-user.decorator';
+import { AUTH } from './auth.constants';
+
+const DAY_MS = 86_400_000;
+const REFRESH_COOKIE = 'refresh_token';
+
+@Controller('auth')
+export class AuthController {
+  constructor(private readonly auth: AuthService) {}
+
+  @Post('register')
+  register(
+    @Body(new ZodValidationPipe(registerSchema)) dto: RegisterDto,
+  ): Promise<MessageResponseDto> {
+    return this.auth.register(dto);
+  }
+
+  @Post('resend-verification')
+  resend(
+    @Body(new ZodValidationPipe(resendVerificationSchema))
+    dto: ResendVerificationDto,
+  ): Promise<MessageResponseDto> {
+    return this.auth.resendVerification(dto.email);
+  }
+
+  @Post('verify')
+  verify(
+    @Body(new ZodValidationPipe(verifySchema)) dto: VerifyDto,
+  ): Promise<MessageResponseDto> {
+    return this.auth.verifyEmail(dto.token);
+  }
+
+  @Post('login')
+  async login(
+    @Body(new ZodValidationPipe(loginSchema)) dto: LoginDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<AuthResponseDto> {
+    const { auth, refreshToken, rememberMe } = await this.auth.login(
+      dto,
+      req.headers['user-agent'],
+    );
+    this.setRefreshCookie(res, refreshToken, rememberMe);
+    return auth;
+  }
+
+  @Post('refresh')
+  async refresh(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<{ accessToken: string }> {
+    const token = this.readRefreshCookie(req);
+    const { accessToken, refreshToken } = await this.auth.refresh(
+      token,
+      req.headers['user-agent'],
+    );
+    // Rotation keeps the original window; re-set with the long maxAge is fine.
+    this.setRefreshCookie(res, refreshToken, true);
+    return { accessToken };
+  }
+
+  @Post('logout')
+  async logout(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<MessageResponseDto> {
+    const token = this.readRefreshCookie(req);
+    const out = await this.auth.logout(token);
+    res.clearCookie(REFRESH_COOKIE, { path: '/auth' });
+    return out;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  me(@CurrentUser() user: RequestUser): PublicUserDto {
+    // The strategy already validated the token; echo the identity claims.
+    return {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      emailVerified: true,
+      avatarUrl: null,
+    };
+  }
+
+  private readRefreshCookie(req: Request): string {
+    const token = (req.cookies as Record<string, string> | undefined)?.[
+      REFRESH_COOKIE
+    ];
+    if (!token) throw new UnauthorizedException('Missing refresh token');
+    return token;
+  }
+
+  private setRefreshCookie(
+    res: Response,
+    token: string,
+    rememberMe: boolean,
+  ): void {
+    const isProd = process.env.NODE_ENV === 'production';
+    const days = rememberMe ? AUTH.rememberDays : AUTH.refreshDays;
+    res.cookie(REFRESH_COOKIE, token, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
+      path: '/auth',
+      maxAge: days * DAY_MS,
+    });
+  }
+}
