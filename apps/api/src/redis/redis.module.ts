@@ -1,8 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import Redis from 'ioredis';
 import { RedisService } from './redis.service';
-
-export const REDIS_CLIENT = 'REDIS_CLIENT';
+import { REDIS_CLIENT } from './redis.constants';
 
 @Global()
 @Module({

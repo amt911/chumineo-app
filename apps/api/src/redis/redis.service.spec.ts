@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { Test } from '@nestjs/testing';
 import { RedisService } from './redis.service';
-import { REDIS_CLIENT } from './redis.module';
+import { REDIS_CLIENT } from './redis.constants';
 import type { Redis } from 'ioredis';
 
 describe('RedisService', () => {
