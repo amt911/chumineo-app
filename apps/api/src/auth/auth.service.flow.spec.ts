@@ -1,4 +1,5 @@
 import { Test } from '@nestjs/testing';
+import { UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UsersService } from '../users/users.service';
 import { MailService } from '../mail/mail.service';
@@ -39,6 +40,8 @@ describe('AuthService (flow)', () => {
   const tokens = {
     issueAccessToken: jest.fn().mockReturnValue('access.jwt'),
     issueRefreshToken: jest.fn().mockResolvedValue('refresh.raw'),
+    rotate: jest.fn(),
+    revoke: jest.fn(),
   };
   let service: AuthService;
 
@@ -109,5 +112,47 @@ describe('AuthService (flow)', () => {
       }),
     );
     expect(redis.del).toHaveBeenCalled();
+  });
+
+  it('refresh returns new access + refresh tokens for a valid user', async () => {
+    tokens.rotate.mockResolvedValueOnce({ userId: '1', refreshToken: 'r2' });
+    prisma.user.findUnique.mockResolvedValueOnce(VERIFIED_USER);
+    const out = await service.refresh('raw.token');
+    expect(tokens.rotate).toHaveBeenCalledWith('raw.token', undefined);
+    expect(out).toEqual({ accessToken: 'access.jwt', refreshToken: 'r2' });
+  });
+
+  it('refresh throws UnauthorizedException when user no longer exists', async () => {
+    tokens.rotate.mockResolvedValueOnce({ userId: 'gone', refreshToken: 'r2' });
+    prisma.user.findUnique.mockResolvedValueOnce(null);
+    await expect(service.refresh('raw.token')).rejects.toThrow(
+      UnauthorizedException,
+    );
+  });
+
+  it('logout revokes the token and returns a message', async () => {
+    tokens.revoke.mockResolvedValueOnce(undefined);
+    const out = await service.logout('raw.token');
+    expect(tokens.revoke).toHaveBeenCalledWith('raw.token');
+    expect(out).toEqual({ message: expect.any(String) });
+  });
+
+  it('resendVerification issues a new link for an existing unverified user', async () => {
+    const unverified = { ...VERIFIED_USER, emailVerified: false };
+    prisma.user.findUnique.mockResolvedValueOnce(unverified);
+    prisma.verificationToken.updateMany = jest.fn().mockResolvedValueOnce({});
+    prisma.verificationToken.create.mockResolvedValueOnce({});
+    mail.sendVerificationEmail.mockResolvedValueOnce(undefined);
+    const out = await service.resendVerification('a@b.com');
+    expect(prisma.verificationToken.create).toHaveBeenCalled();
+    expect(mail.sendVerificationEmail).toHaveBeenCalled();
+    expect(out.message).toEqual(expect.any(String));
+  });
+
+  it('resendVerification returns a generic message without sending email when user is already verified', async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(VERIFIED_USER);
+    const out = await service.resendVerification('a@b.com');
+    expect(mail.sendVerificationEmail).not.toHaveBeenCalled();
+    expect(out.message).toEqual(expect.any(String));
   });
 });

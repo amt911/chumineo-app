@@ -6,8 +6,6 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-
-const HTTP_LOCKED = 423;
 import {
   AuthResponseDto,
   LoginDto,
@@ -24,6 +22,7 @@ import { hashPassword, verifyPassword } from './password.util';
 import { generateOpaqueToken, sha256 } from './token.util';
 import { AUTH } from './auth.constants';
 
+const HTTP_LOCKED = 423;
 const VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
 
 type DbUser = {

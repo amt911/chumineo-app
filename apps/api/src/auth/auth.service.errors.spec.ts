@@ -114,12 +114,10 @@ describe('AuthService (errors)', () => {
 
   it('login locks out after too many attempts', async () => {
     redis.get.mockResolvedValueOnce('5');
-    await expect(
-      service.login({
-        email: 'a@b.com',
-        password: 'secret12',
-        rememberMe: false,
-      }),
-    ).rejects.toThrow(HttpException);
+    const err = await service
+      .login({ email: 'a@b.com', password: 'secret12', rememberMe: false })
+      .catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(HttpException);
+    expect((err as HttpException).getStatus()).toBe(423);
   });
 });
