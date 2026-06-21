@@ -93,7 +93,7 @@ export class AuthController {
   ): Promise<MessageResponseDto> {
     const token = this.readRefreshCookie(req);
     const out = await this.auth.logout(token);
-    res.clearCookie(REFRESH_COOKIE, { path: '/auth' });
+    res.clearCookie(REFRESH_COOKIE, this.cookieBaseOptions());
     return out;
   }
 
@@ -118,18 +118,29 @@ export class AuthController {
     return token;
   }
 
+  private cookieBaseOptions(): {
+    httpOnly: boolean;
+    secure: boolean;
+    sameSite: 'none' | 'lax';
+    path: string;
+  } {
+    const isProd = process.env.NODE_ENV === 'production';
+    return {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
+      path: '/auth',
+    };
+  }
+
   private setRefreshCookie(
     res: Response,
     token: string,
     rememberMe: boolean,
   ): void {
-    const isProd = process.env.NODE_ENV === 'production';
     const days = rememberMe ? AUTH.rememberDays : AUTH.refreshDays;
     res.cookie(REFRESH_COOKIE, token, {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: isProd ? 'none' : 'lax',
-      path: '/auth',
+      ...this.cookieBaseOptions(),
       maxAge: days * DAY_MS,
     });
   }
