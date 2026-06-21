@@ -32,6 +32,7 @@
     "@nestjs/platform-express": "^10.0.0",
     "@prisma/client": "^6.0.0",
     "@sobrebox/shared": "workspace:*",
+    "argon2": "^0.44.0",
     "ioredis": "^5.11.1",
     "nodemailer": "^9.0.1",
     "reflect-metadata": "^0.2.0",
