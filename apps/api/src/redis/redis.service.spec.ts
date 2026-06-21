@@ -1,5 +1,7 @@
 import 'reflect-metadata';
+import { Test } from '@nestjs/testing';
 import { RedisService } from './redis.service';
+import { REDIS_CLIENT } from './redis.module';
 import type { Redis } from 'ioredis';
 
 describe('RedisService', () => {
@@ -12,10 +14,15 @@ describe('RedisService', () => {
   };
   let service: RedisService;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
-    // Use direct instantiation rather than NestJS DI to avoid decorator metadata issues in tests
-    service = new RedisService(client as unknown as Redis);
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        RedisService,
+        { provide: REDIS_CLIENT, useValue: client as unknown as Redis },
+      ],
+    }).compile();
+    service = moduleRef.get(RedisService);
   });
 
   it('sets a TTL only on the first increment', async () => {
