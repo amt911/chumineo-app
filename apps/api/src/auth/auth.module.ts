@@ -16,7 +16,11 @@ import { AUTH } from './auth.constants';
     UsersModule,
     JwtModule.register({
       secret: process.env.JWT_ACCESS_SECRET ?? 'dev-access-secret',
-      signOptions: { expiresIn: AUTH.accessTtl },
+      // AUTH.accessTtl is always a valid ms StringValue at runtime; the cast is needed
+      // because process.env widens the type to string, losing the template-literal constraint.
+      signOptions: {
+        expiresIn: AUTH.accessTtl as `${number}${'m' | 's' | 'h' | 'd'}`,
+      },
     }),
   ],
   controllers: [AuthController],
