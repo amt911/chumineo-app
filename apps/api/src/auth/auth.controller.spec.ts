@@ -1,6 +1,15 @@
 import { Test } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { UsersService } from '../users/users.service';
+
+const meUser = {
+  id: '1',
+  email: 'a@b.com',
+  username: 'neo',
+  emailVerified: true,
+  avatarUrl: null,
+};
 
 describe('AuthController', () => {
   const auth = {
@@ -17,13 +26,20 @@ describe('AuthController', () => {
     verifyEmail: jest.fn().mockResolvedValue({ message: 'verified' }),
     resendVerification: jest.fn().mockResolvedValue({ message: 'sent' }),
   };
+  const users = {
+    getAuthUser: jest.fn().mockResolvedValue(meUser),
+  };
   let controller: AuthController;
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    users.getAuthUser.mockResolvedValue(meUser);
     const moduleRef = await Test.createTestingModule({
       controllers: [AuthController],
-      providers: [{ provide: AuthService, useValue: auth }],
+      providers: [
+        { provide: AuthService, useValue: auth },
+        { provide: UsersService, useValue: users },
+      ],
     }).compile();
     controller = moduleRef.get(AuthController);
   });
@@ -95,13 +111,10 @@ describe('AuthController', () => {
     expect(result).toEqual({ message: 'verified' });
   });
 
-  it('me returns identity fields from the current user', () => {
-    const user = { id: '1', email: 'a@b.com', username: 'neo' };
-    const result = controller.me(user);
-    expect(result).toMatchObject({
-      id: '1',
-      email: 'a@b.com',
-      username: 'neo',
-    });
+  it('me calls getAuthUser with the current user id and returns its result', async () => {
+    const requestUser = { id: '1', email: 'a@b.com', username: 'neo' };
+    const result = await controller.me(requestUser);
+    expect(users.getAuthUser).toHaveBeenCalledWith('1');
+    expect(result).toEqual(meUser);
   });
 });

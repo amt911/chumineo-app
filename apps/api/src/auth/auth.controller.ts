@@ -24,6 +24,7 @@ import {
 } from '@sobrebox/shared';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { AuthService } from './auth.service';
+import { UsersService } from '../users/users.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser, RequestUser } from './decorators/current-user.decorator';
 import { AUTH } from './auth.constants';
@@ -33,7 +34,10 @@ const REFRESH_COOKIE = 'refresh_token';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly auth: AuthService) {}
+  constructor(
+    private readonly auth: AuthService,
+    private readonly users: UsersService,
+  ) {}
 
   @Post('register')
   register(
@@ -99,15 +103,8 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  me(@CurrentUser() user: RequestUser): PublicUserDto {
-    // The strategy already validated the token; echo the identity claims.
-    return {
-      id: user.id,
-      email: user.email,
-      username: user.username,
-      emailVerified: true,
-      avatarUrl: null,
-    };
+  me(@CurrentUser() user: RequestUser): Promise<PublicUserDto> {
+    return this.users.getAuthUser(user.id);
   }
 
   private readRefreshCookie(req: Request): string {

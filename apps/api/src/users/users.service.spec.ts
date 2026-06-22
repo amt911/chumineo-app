@@ -51,4 +51,42 @@ describe('UsersService', () => {
       NotFoundException,
     );
   });
+
+  describe('getAuthUser', () => {
+    const dbUser = {
+      id: 'user-id-1',
+      email: 'alice@x.com',
+      username: 'alice',
+      emailVerified: true,
+      avatarUrl: null,
+      createdAt: new Date(),
+      passwordHash: 'secret-hash',
+    };
+
+    it('returns PublicUserDto with real fields', async () => {
+      user.findUnique.mockResolvedValueOnce(dbUser);
+      const result = await service.getAuthUser('user-id-1');
+      expect(result).toEqual({
+        id: 'user-id-1',
+        email: 'alice@x.com',
+        username: 'alice',
+        emailVerified: true,
+        avatarUrl: null,
+      });
+    });
+
+    it('strips private fields from result', async () => {
+      user.findUnique.mockResolvedValueOnce(dbUser);
+      const result = await service.getAuthUser('user-id-1');
+      expect(result).not.toHaveProperty('passwordHash');
+      expect(result).not.toHaveProperty('createdAt');
+    });
+
+    it('throws NotFoundException when user is missing', async () => {
+      user.findUnique.mockResolvedValueOnce(null);
+      await expect(service.getAuthUser('ghost-id')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
 });

@@ -1,5 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PublicProfileDto, publicProfileSchema } from '@sobrebox/shared';
+import {
+  PublicProfileDto,
+  publicProfileSchema,
+  PublicUserDto,
+  publicUserSchema,
+} from '@sobrebox/shared';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -30,6 +35,18 @@ export class UsersService {
       username: user.username,
       avatarUrl: user.avatarUrl,
       memberSince: user.createdAt.toISOString(),
+    });
+  }
+
+  async getAuthUser(id: string): Promise<PublicUserDto> {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) throw new NotFoundException('User not found');
+    return publicUserSchema.parse({
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      emailVerified: user.emailVerified,
+      avatarUrl: user.avatarUrl,
     });
   }
 }
