@@ -12,6 +12,7 @@ vi.mock('@/lib/api', () => ({ verifyEmail: vi.fn() }));
 describe('VerifyContent', () => {
   beforeEach(() => {
     getMock.mockReset();
+    vi.mocked(api.verifyEmail).mockReset();
   });
 
   it('shows an error and does not call verifyEmail when token is missing', async () => {
