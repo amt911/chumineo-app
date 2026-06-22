@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const registerSchema = z.object({
-  email: z.string().email(),
+  email: z.string().trim().toLowerCase().email(),
   password: z.string().min(8).regex(/\d/, 'Must contain a number'),
   username: z
     .string()
@@ -13,7 +13,7 @@ export const registerSchema = z.object({
 export type RegisterDto = z.infer<typeof registerSchema>;
 
 export const loginSchema = z.object({
-  email: z.string().email(),
+  email: z.string().trim().toLowerCase().email(),
   password: z.string().min(1),
   rememberMe: z.boolean().default(false),
 });
@@ -25,5 +25,7 @@ export type LoginInputDto = z.input<typeof loginSchema>;
 export const verifySchema = z.object({ token: z.string().min(1) });
 export type VerifyDto = z.infer<typeof verifySchema>;
 
-export const resendVerificationSchema = z.object({ email: z.string().email() });
+export const resendVerificationSchema = z.object({
+  email: z.string().trim().toLowerCase().email(),
+});
 export type ResendVerificationDto = z.infer<typeof resendVerificationSchema>;
