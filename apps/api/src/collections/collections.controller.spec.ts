@@ -1,33 +1,37 @@
 import { Test } from '@nestjs/testing';
-import {
-  CollectionCategory,
-  CollectionResponseDto,
-  CollectionSource,
-  CollectionStatus,
-} from '@sobrebox/shared';
 import { CollectionsController } from './collections.controller';
 import { CollectionsService } from './collections.service';
 
 describe('CollectionsController', () => {
-  it('delegates findAll to the service', async () => {
-    const expected: CollectionResponseDto[] = [
-      {
-        id: '1',
-        slug: 's',
-        name: 'N',
-        category: CollectionCategory.TCG,
-        status: CollectionStatus.PUBLISHED,
-        source: CollectionSource.ADMIN,
-      },
-    ];
-    const service = { findAll: jest.fn().mockResolvedValue(expected) };
+  const collections = {
+    findPage: jest.fn().mockResolvedValue({
+      items: [],
+      page: 1,
+      pageSize: 20,
+      total: 0,
+      hasMore: false,
+    }),
+    findBySlug: jest.fn().mockResolvedValue({ slug: 's' }),
+  };
+  let controller: CollectionsController;
+
+  beforeEach(async () => {
+    jest.clearAllMocks();
     const moduleRef = await Test.createTestingModule({
       controllers: [CollectionsController],
-      providers: [{ provide: CollectionsService, useValue: service }],
+      providers: [{ provide: CollectionsService, useValue: collections }],
     }).compile();
-    const controller = moduleRef.get(CollectionsController);
+    controller = moduleRef.get(CollectionsController);
+  });
 
-    await expect(controller.findAll()).resolves.toBe(expected);
-    expect(service.findAll).toHaveBeenCalledTimes(1);
+  it('delegates list to findPage with the parsed query', async () => {
+    const query = { page: 1, limit: 20, sort: 'newest' as const };
+    await controller.findAll(query);
+    expect(collections.findPage).toHaveBeenCalledWith(query);
+  });
+
+  it('delegates detail to findBySlug', async () => {
+    await controller.findOne('s');
+    expect(collections.findBySlug).toHaveBeenCalledWith('s');
   });
 });
