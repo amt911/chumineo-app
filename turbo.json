@@ -1,5 +1,12 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalPassThroughEnv": [
+    "ALLOWED_DEV_ORIGINS",
+    "WITH_TAILSCALE",
+    "WEB_PORT",
+    "API_PORT",
+    "NEXT_PUBLIC_API_URL"
+  ],
   "tasks": {
     "build": { "dependsOn": ["^build"], "outputs": ["dist/**", ".next/**"] },
     "dev": { "cache": false, "persistent": true },

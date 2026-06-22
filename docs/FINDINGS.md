@@ -28,6 +28,35 @@
 - Coverage de web excluye `app/**` (App Router, se prueba por integración) y `components/ui/**` + `lib/utils.ts` (generados por shadcn). La superficie unit-testeada es `components/<dominio>/**` y `lib/api.ts`.
 - La página `/collections` es dinámica vía `fetch(..., { cache: 'no-store' })` en `lib/api.ts` (no `force-dynamic`), para no prerenderizar contra una API que puede no estar levantada en build.
 
+## Auth
+
+- Passwords use **argon2id** (`argon2`, native addon with prebuilt binaries).
+  High-entropy opaque tokens (refresh, verification) are hashed with **SHA-256**,
+  not argon2 — argon2 is only for low-entropy secrets.
+- Refresh tokens are **stateful**: random opaque strings, only the SHA-256 hash is
+  stored in `Session`, rotated on every `/auth/refresh`; reuse of a rotated token
+  revokes the whole chain.
+- Cross-origin cookies: web (`:3101`/tailnet) and api (`:3100`) are different
+  origins → CORS needs `credentials:true` + explicit `CORS_ORIGINS` (not `*`).
+  Same **site** in dev (different ports on one host) so `sameSite='lax'` works;
+  prod is cross-site → `sameSite='none'; secure`, gated on `NODE_ENV=production`.
+  For mobile-over-tailnet, add the MagicDNS origin to `CORS_ORIGINS`.
+- Lockout counters live in Redis (`lockout:<email>`), TTL = `LOCKOUT_WINDOW_MIN`.
+- Login is blocked until `emailVerified`; the api returns `403 EMAIL_NOT_VERIFIED`
+  so the UI can offer "resend".
+- **argon2 is a native addon** — requires `argon2: true` in `pnpm-workspace.yaml`
+  `allowBuilds` (or pnpm won't run its build script and it fails at runtime).
+- **`HttpStatus.LOCKED` does NOT exist in `@nestjs/common@10`** (the enum skips 423)
+  — use the literal `423` for the lockout response.
+- **`esModuleInterop: true`** is required in `apps/api/tsconfig.json` for
+  default-importing CommonJS packages (e.g. `import cookieParser from 'cookie-parser'`)
+  or it crashes at runtime.
+- **`REDIS_CLIENT` DI token** lives in `apps/api/src/redis/redis.constants.ts`
+  (NOT in redis.module.ts) to avoid a module↔service circular import that left
+  the token `undefined` at runtime DI bootstrap.
+- **Refresh cookie `sameSite`**: dev is same-site (localhost different ports) so
+  `sameSite=lax`; prod cross-site needs `sameSite=none; secure` (gated on NODE_ENV).
+
 ## Pendiente (Playwright)
 
 - Playwright (e2e de frontend) está **declarado pero diferido a la épica 3** (animación de apertura). Aún no hay script de frontend-e2e.

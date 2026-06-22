@@ -36,15 +36,46 @@ enum CollectionSource {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  username  String   @unique
-  createdAt DateTime @default(now())
+  id            String   @id @default(cuid())
+  email         String   @unique
+  username      String   @unique
+  passwordHash  String
+  emailVerified Boolean  @default(false)
+  avatarUrl     String?
+  bio           String?
+  createdAt     DateTime @default(now())
 
-  collections Collection[]         @relation("CreatedCollections")
-  revisions   CollectionRevision[]
-  openings    Opening[]
-  inventory   UserInventory[]
+  collections        Collection[]         @relation("CreatedCollections")
+  revisions          CollectionRevision[]
+  openings           Opening[]
+  inventory          UserInventory[]
+  sessions           Session[]
+  verificationTokens VerificationToken[]
+}
+
+model Session {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  tokenHash String    @unique
+  userAgent String?
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id])
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
 }
 
 model Brand {
