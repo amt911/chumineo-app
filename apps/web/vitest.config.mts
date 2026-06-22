@@ -22,6 +22,9 @@ export default defineConfig({
         'lib/utils.ts',
         // dev launch script — infra tooling (like main.ts/seed.ts), not unit-tested
         'scripts/**',
+        // App Router pages — integration-tested, excluded from unit coverage
+        'app/(auth)/**',
+        'app/profile/**',
       ],
     },
   },
