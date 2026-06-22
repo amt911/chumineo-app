@@ -5,7 +5,11 @@
     "WITH_TAILSCALE",
     "WEB_PORT",
     "API_PORT",
-    "NEXT_PUBLIC_API_URL"
+    "NEXT_PUBLIC_API_URL",
+    "WEB_PUBLIC_URL",
+    "CORS_ORIGINS",
+    "API_INTERNAL_URL",
+    "API_PROXY_TARGET"
   ],
   "tasks": {
     "build": { "dependsOn": ["^build"], "outputs": ["dist/**", ".next/**"] },

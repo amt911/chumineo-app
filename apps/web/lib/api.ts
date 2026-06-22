@@ -9,7 +9,14 @@ import {
   type RegisterDto,
 } from '@sobrebox/shared';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
+// Server components (RSC) fetch the API directly on the host (absolute URL).
+// Browser code calls the same-origin `/api` path, which Next rewrites to the API
+// (see next.config.ts) — so it works from any device (phone over tailnet) with no
+// CORS and no need to resolve `localhost` from the client.
+const API_URL =
+  typeof window === 'undefined'
+    ? (process.env.API_INTERNAL_URL ?? 'http://localhost:3000')
+    : '/api';
 
 export async function fetchCollections(): Promise<CollectionResponseDto[]> {
   const res = await fetch(`${API_URL}/collections`, { cache: 'no-store' });

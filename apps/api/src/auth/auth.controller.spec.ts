@@ -82,7 +82,7 @@ describe('AuthController', () => {
     expect(auth.logout).toHaveBeenCalledWith('r');
     expect(res.clearCookie).toHaveBeenCalledWith(
       'refresh_token',
-      expect.objectContaining({ path: '/auth', httpOnly: true }),
+      expect.objectContaining({ path: '/', httpOnly: true }),
     );
   });
 

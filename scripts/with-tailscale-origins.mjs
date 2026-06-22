@@ -1,14 +1,27 @@
 #!/usr/bin/env node
 // OS-agnostic launcher (Linux/macOS/Windows). Detects this host's Tailscale
-// origins (IP + MagicDNS short/FQDN + tailnet wildcard) and exports them as
-// ALLOWED_DEV_ORIGINS — consumed by apps/web/next.config.ts as allowedDevOrigins
-// so Next 15.2+ doesn't refuse the cross-origin HMR websocket
-// (NS_ERROR_WEBSOCKET_CONNECTION_REFUSED) when a phone on the tailnet loads the
-// dev server — then runs the command passed as arguments. Degrades to local-only
-// (var unset) when the `tailscale` CLI is missing or down.
+// origins (IP + MagicDNS short/FQDN + tailnet wildcard) and exports them so the
+// dev stack is reachable from a phone on the tailnet, then runs the command
+// passed as arguments. Exports:
+//   - ALLOWED_DEV_ORIGINS — apps/web/next.config.ts -> allowedDevOrigins, so
+//     Next 15.2+ doesn't refuse the cross-origin HMR websocket.
+//   - WEB_PUBLIC_URL — the API bakes this into the verification email link, so it
+//     must be reachable from the device opening the email. Derived from the
+//     MagicDNS FQDN + WEB_PORT so the link works on the phone (no hardcoding).
+//   - CORS_ORIGINS — localhost + the tailnet web origin (harmless with the
+//     same-origin /api proxy; correct if CORS is ever exercised directly).
+// Degrades to local-only (vars unset) when the `tailscale` CLI is missing/down.
+// An explicit WEB_PUBLIC_URL/CORS_ORIGINS already in the environment is respected.
 import { execFileSync, spawn } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 
 const isWin = process.platform === 'win32';
+const repoRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '..',
+);
 
 // Exported so apps/web/scripts/dev.mjs can reuse the detection without dup logic.
 export function detectOrigins() {
@@ -35,6 +48,33 @@ export function detectOrigins() {
   return origins;
 }
 
+// The MagicDNS FQDN (host.tailnet.ts.net) or null. It's the one origin that
+// has dots, isn't the wildcard, and isn't the numeric IP.
+function detectFqdn(origins) {
+  return (
+    origins.find(
+      (o) => o.includes('.ts.net') && !o.startsWith('*') && !/^\d/.test(o),
+    ) ?? null
+  );
+}
+
+// Read a single key from the repo-root .env (the launcher's own env doesn't have
+// it loaded). Minimal parser; returns undefined if absent.
+function rootEnv(key) {
+  try {
+    const raw = readFileSync(path.join(repoRoot, '.env'), 'utf8');
+    for (const line of raw.split('\n')) {
+      if (line.trim().startsWith('#')) continue;
+      const m = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
+      if (m && m[1] === key)
+        return (m[2] ?? '').trim().replace(/^['"]|['"]$/g, '');
+    }
+  } catch {
+    /* no .env */
+  }
+  return undefined;
+}
+
 // Run as a CLI only when invoked directly (not when imported).
 const invokedDirectly =
   process.argv[1] && import.meta.url === `file://${process.argv[1]}`;
@@ -53,6 +93,21 @@ if (invokedDirectly) {
   if (origins.length > 0) {
     env.ALLOWED_DEV_ORIGINS = origins.join(',');
     console.log(`[tailscale] allowedDevOrigins = ${env.ALLOWED_DEV_ORIGINS}`);
+
+    const fqdn = detectFqdn(origins);
+    const webPort = process.env.WEB_PORT ?? rootEnv('WEB_PORT') ?? '3001';
+    if (fqdn) {
+      const webOrigin = `http://${fqdn}:${webPort}`;
+      // Respect an explicit override; otherwise point the email link + CORS at
+      // the tailnet host so the phone can open the verification link.
+      if (!process.env.WEB_PUBLIC_URL) {
+        env.WEB_PUBLIC_URL = webOrigin;
+        console.log(`[tailscale] WEB_PUBLIC_URL = ${env.WEB_PUBLIC_URL}`);
+      }
+      if (!process.env.CORS_ORIGINS) {
+        env.CORS_ORIGINS = `http://localhost:${webPort},${webOrigin}`;
+      }
+    }
   } else {
     console.warn(
       '[tailscale] no Tailscale origins detected — starting local-only',
