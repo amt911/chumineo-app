@@ -1,12 +1,14 @@
-import {
-  collectionsResponseSchema,
-  type AuthResponseDto,
-  type CollectionResponseDto,
-  type LoginDto,
-  type MessageResponseDto,
-  type PublicProfileDto,
-  type PublicUserDto,
-  type RegisterDto,
+import type {
+  AuthResponseDto,
+  BrandDto,
+  CollectionDetailDto,
+  CollectionsPageDto,
+  CollectionsQueryDto,
+  LoginDto,
+  MessageResponseDto,
+  PublicProfileDto,
+  PublicUserDto,
+  RegisterDto,
 } from '@sobrebox/shared';
 
 // Server components (RSC) fetch the API directly on the host (absolute URL).
@@ -18,11 +20,41 @@ const API_URL =
     ? (process.env.API_INTERNAL_URL ?? 'http://localhost:3000')
     : '/api';
 
-export async function fetchCollections(): Promise<CollectionResponseDto[]> {
-  const res = await fetch(`${API_URL}/collections`, { cache: 'no-store' });
+function buildQuery(query: Partial<CollectionsQueryDto>): string {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== null && value !== '') {
+      params.set(key, String(value));
+    }
+  }
+  const s = params.toString();
+  return s ? `?${s}` : '';
+}
+
+export async function fetchCollectionsPage(
+  query: Partial<CollectionsQueryDto>,
+): Promise<CollectionsPageDto> {
+  const res = await fetch(`${API_URL}/collections${buildQuery(query)}`, {
+    cache: 'no-store',
+  });
   if (!res.ok) throw new Error(`Failed to fetch collections: ${res.status}`);
-  // Validate the wire payload against the shared schema so the return type is honest.
-  return collectionsResponseSchema.parse(await res.json());
+  return res.json() as Promise<CollectionsPageDto>;
+}
+
+export async function fetchBrands(): Promise<BrandDto[]> {
+  const res = await fetch(`${API_URL}/brands`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch brands: ${res.status}`);
+  return res.json() as Promise<BrandDto[]>;
+}
+
+export async function fetchCollectionDetail(
+  slug: string,
+): Promise<CollectionDetailDto> {
+  const res = await fetch(`${API_URL}/collections/${slug}`, {
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to fetch collection: ${res.status}`);
+  return res.json() as Promise<CollectionDetailDto>;
 }
 
 async function postJson<T>(path: string, body: unknown): Promise<T> {

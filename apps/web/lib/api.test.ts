@@ -1,11 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  CollectionCategory,
-  CollectionSource,
-  CollectionStatus,
-} from '@sobrebox/shared';
-import {
-  fetchCollections,
+  fetchCollectionsPage,
+  fetchBrands,
+  fetchCollectionDetail,
   loginUser,
   fetchPublicProfile,
   registerUser,
@@ -17,46 +14,69 @@ import {
 
 afterEach(() => vi.unstubAllGlobals());
 
-const validCollection = {
-  id: '1',
-  slug: 'a',
-  name: 'N',
-  category: CollectionCategory.TCG,
-  status: CollectionStatus.PUBLISHED,
-  source: CollectionSource.API_IMPORT,
-};
-
-describe('fetchCollections', () => {
-  it('returns the validated collections and hits /collections (no-store)', async () => {
+describe('fetchCollectionsPage', () => {
+  it('builds the query string and returns the parsed page', async () => {
+    const page = {
+      items: [],
+      page: 2,
+      pageSize: 20,
+      total: 0,
+      hasMore: false,
+    };
     const fetchMock = vi
       .fn()
-      .mockResolvedValue({ ok: true, json: async () => [validCollection] });
+      .mockResolvedValue({ ok: true, json: async () => page });
     vi.stubGlobal('fetch', fetchMock);
-
-    await expect(fetchCollections()).resolves.toEqual([validCollection]);
-    expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining('/collections'),
-      expect.objectContaining({ cache: 'no-store' }),
-    );
+    await expect(
+      fetchCollectionsPage({ page: 2, category: undefined, q: 'char' }),
+    ).resolves.toEqual(page);
+    const url = fetchMock.mock.calls[0][0] as string;
+    expect(url).toContain('/collections?');
+    expect(url).toContain('page=2');
+    expect(url).toContain('q=char');
+    expect(url).not.toContain('category=');
   });
 
-  it('throws on a non-ok response', async () => {
+  it('throws on non-ok', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue({ ok: false, status: 500 }),
     );
-    await expect(fetchCollections()).rejects.toThrow(/500/);
+    await expect(fetchCollectionsPage({})).rejects.toThrow(/500/);
   });
+});
 
-  it('throws when the payload shape is invalid', async () => {
+describe('fetchBrands', () => {
+  it('returns the brand list', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => [{ id: '1' }],
+        json: async () => [{ slug: 'funko', name: 'Funko' }],
       }),
     );
-    await expect(fetchCollections()).rejects.toThrow();
+    await expect(fetchBrands()).resolves.toEqual([
+      { slug: 'funko', name: 'Funko' },
+    ]);
+  });
+});
+
+describe('fetchCollectionDetail', () => {
+  it('returns the detail json', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue({ ok: true, json: async () => ({ slug: 's' }) }),
+    );
+    await expect(fetchCollectionDetail('s')).resolves.toEqual({ slug: 's' });
+  });
+  it('throws on non-ok', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: false, status: 404 }),
+    );
+    await expect(fetchCollectionDetail('s')).rejects.toThrow(/404/);
   });
 });
 
@@ -138,12 +158,10 @@ describe('verifyEmail', () => {
   it('posts to /auth/verify with token', async () => {
     vi.stubGlobal(
       'fetch',
-      vi
-        .fn()
-        .mockResolvedValue({
-          ok: true,
-          json: async () => ({ message: 'verified' }),
-        }),
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ message: 'verified' }),
+      }),
     );
     await expect(verifyEmail('tok123')).resolves.toEqual({
       message: 'verified',
@@ -155,12 +173,10 @@ describe('resendVerification', () => {
   it('posts to /auth/resend-verification', async () => {
     vi.stubGlobal(
       'fetch',
-      vi
-        .fn()
-        .mockResolvedValue({
-          ok: true,
-          json: async () => ({ message: 'sent' }),
-        }),
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ message: 'sent' }),
+      }),
     );
     await expect(resendVerification('a@b.com')).resolves.toEqual({
       message: 'sent',
@@ -172,12 +188,10 @@ describe('logoutUser', () => {
   it('posts to /auth/logout', async () => {
     vi.stubGlobal(
       'fetch',
-      vi
-        .fn()
-        .mockResolvedValue({
-          ok: true,
-          json: async () => ({ message: 'logged out' }),
-        }),
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ message: 'logged out' }),
+      }),
     );
     await expect(logoutUser()).resolves.toEqual({ message: 'logged out' });
   });
