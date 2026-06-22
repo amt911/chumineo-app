@@ -5,6 +5,7 @@ import { LoginForm } from './login-form';
 import * as api from '@/lib/api';
 
 vi.mock('@/lib/api');
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
 describe('LoginForm', () => {
   beforeEach(() => vi.clearAllMocks());

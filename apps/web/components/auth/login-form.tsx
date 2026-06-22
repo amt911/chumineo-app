@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -24,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
 export function LoginForm() {
+  const router = useRouter();
   const setSession = useAuthStore((s) => s.setSession);
   const [serverError, setServerError] = useState<string | null>(null);
   const {
@@ -41,6 +43,8 @@ export function LoginForm() {
       // zodResolver applies the Zod default, so rememberMe is always boolean at runtime
       const { accessToken, user } = await loginUser(values as LoginDto);
       setSession(accessToken, user);
+      // Leave the login form on success so the user sees they're in.
+      router.push('/collections');
     } catch (err) {
       setServerError(err instanceof Error ? err.message : 'Login failed');
     }
