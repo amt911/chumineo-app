@@ -126,7 +126,10 @@ export class AuthController {
       httpOnly: true,
       secure: isProd,
       sameSite: isProd ? 'none' : 'lax',
-      path: '/auth',
+      // Root path: the web app reaches /auth/refresh and /auth/logout through a
+      // same-origin `/api/*` proxy, so a cookie scoped to `/auth` would never be
+      // sent on those requests. Root keeps it httpOnly and sent on the proxied calls.
+      path: '/',
     };
   }
 
