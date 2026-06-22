@@ -48,16 +48,26 @@ describe('fetchCollectionsPage', () => {
 
 describe('fetchBrands', () => {
   it('returns the brand list', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => [{ slug: 'funko', name: 'Funko' }],
-      }),
-    );
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [{ slug: 'funko', name: 'Funko' }],
+    });
+    vi.stubGlobal('fetch', fetchMock);
     await expect(fetchBrands()).resolves.toEqual([
       { slug: 'funko', name: 'Funko' },
     ]);
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/brands'),
+      expect.objectContaining({ cache: 'no-store' }),
+    );
+  });
+
+  it('throws on non-ok', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: false, status: 500 }),
+    );
+    await expect(fetchBrands()).rejects.toThrow(/500/);
   });
 });
 
