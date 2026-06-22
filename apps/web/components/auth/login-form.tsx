@@ -2,7 +2,11 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { loginSchema, type LoginDto } from '@sobrebox/shared';
+import {
+  loginSchema,
+  type LoginDto,
+  type LoginInputDto,
+} from '@sobrebox/shared';
 import { loginUser } from '@/lib/api';
 import { useAuthStore } from '@/lib/auth-store';
 
@@ -13,7 +17,7 @@ export function LoginForm() {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<LoginDto>({
+  } = useForm<LoginInputDto>({
     resolver: zodResolver(loginSchema),
     defaultValues: { rememberMe: false },
   });
@@ -21,7 +25,8 @@ export function LoginForm() {
   const onSubmit = handleSubmit(async (values) => {
     setServerError(null);
     try {
-      const { accessToken, user } = await loginUser(values);
+      // zodResolver applies the Zod default, so rememberMe is always boolean at runtime
+      const { accessToken, user } = await loginUser(values as LoginDto);
       setSession(accessToken, user);
     } catch (err) {
       setServerError(err instanceof Error ? err.message : 'Login failed');
