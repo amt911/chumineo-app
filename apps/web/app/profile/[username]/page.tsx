@@ -1,5 +1,7 @@
 import { notFound } from 'next/navigation';
 import { fetchPublicProfile } from '@/lib/api';
+import { Card, CardContent } from '@/components/ui/card';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 export default async function ProfilePage({
   params,
@@ -14,9 +16,22 @@ export default async function ProfilePage({
     notFound();
   }
   return (
-    <main>
-      <h1>{profile.username}</h1>
-      <p>Member since {new Date(profile.memberSince).toLocaleDateString()}</p>
-    </main>
+    <div className="flex justify-center pt-8">
+      <Card className="w-full max-w-sm">
+        <CardContent className="flex flex-col items-center gap-4 pt-6">
+          <Avatar size="lg">
+            <AvatarFallback>{profile.username[0].toUpperCase()}</AvatarFallback>
+          </Avatar>
+          <div className="text-center">
+            <h1 className="font-heading text-xl font-semibold">
+              {profile.username}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Member since {new Date(profile.memberSince).toLocaleDateString()}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

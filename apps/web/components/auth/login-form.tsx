@@ -9,6 +9,19 @@ import {
 } from '@sobrebox/shared';
 import { loginUser } from '@/lib/api';
 import { useAuthStore } from '@/lib/auth-store';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 export function LoginForm() {
   const setSession = useAuthStore((s) => s.setSession);
@@ -34,25 +47,87 @@ export function LoginForm() {
   });
 
   return (
-    <form onSubmit={onSubmit} noValidate>
-      <label htmlFor="email">Email</label>
-      <input id="email" type="email" {...register('email')} />
-      {errors.email && (
-        <p role="alert">{errors.email.message ?? 'Invalid email'}</p>
-      )}
+    <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle className="text-xl">Log in</CardTitle>
+          <CardDescription>
+            Enter your credentials to access your account.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form id="login-form" onSubmit={onSubmit} noValidate>
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  {...register('email')}
+                />
+                {errors.email && (
+                  <p role="alert" className="text-sm text-destructive">
+                    {errors.email.message ?? 'Invalid email'}
+                  </p>
+                )}
+              </div>
 
-      <label htmlFor="password">Password</label>
-      <input id="password" type="password" {...register('password')} />
-      {errors.password && <p role="alert">{errors.password.message}</p>}
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  {...register('password')}
+                />
+                {errors.password && (
+                  <p role="alert" className="text-sm text-destructive">
+                    {errors.password.message}
+                  </p>
+                )}
+              </div>
 
-      <label>
-        <input type="checkbox" {...register('rememberMe')} /> Remember me
-      </label>
+              <div className="flex items-center gap-2">
+                <input
+                  id="rememberMe"
+                  type="checkbox"
+                  className="size-4 rounded border-input accent-primary"
+                  {...register('rememberMe')}
+                />
+                <Label htmlFor="rememberMe" className="font-normal">
+                  Remember me
+                </Label>
+              </div>
 
-      {serverError && <p role="alert">{serverError}</p>}
-      <button type="submit" disabled={isSubmitting}>
-        Log in
-      </button>
-    </form>
+              {serverError && (
+                <Alert variant="destructive" role="alert">
+                  <AlertDescription>{serverError}</AlertDescription>
+                </Alert>
+              )}
+            </div>
+          </form>
+        </CardContent>
+        <CardFooter className="flex flex-col gap-3">
+          <Button
+            type="submit"
+            form="login-form"
+            className="w-full"
+            disabled={isSubmitting}
+          >
+            Log in
+          </Button>
+          <p className="text-center text-sm text-muted-foreground">
+            Don&apos;t have an account?{' '}
+            <Link
+              href="/register"
+              className="text-foreground underline underline-offset-4 hover:text-primary"
+            >
+              Sign up
+            </Link>
+          </p>
+        </CardFooter>
+      </Card>
+    </div>
   );
 }
