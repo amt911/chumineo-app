@@ -1,8 +1,10 @@
+import { NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import {
   CollectionCategory,
   CollectionSource,
   CollectionStatus,
+  Rarity,
 } from '@sobrebox/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { CollectionsService } from './collections.service';
@@ -110,5 +112,88 @@ describe('CollectionsService.findPage', () => {
     collection.count.mockResolvedValueOnce(5);
     const page = await service.findPage({ page: 1, limit: 20, sort: 'newest' });
     expect(page.hasMore).toBe(false);
+  });
+});
+
+describe('CollectionsService.findBySlug', () => {
+  const collection = { findFirst: jest.fn() };
+  const prisma = { collection } as unknown as PrismaService;
+  let service: CollectionsService;
+
+  beforeEach(async () => {
+    jest.clearAllMocks();
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        CollectionsService,
+        { provide: PrismaService, useValue: prisma },
+      ],
+    }).compile();
+    service = moduleRef.get(CollectionsService);
+  });
+
+  it('throws NotFound when the slug is missing or unpublished', async () => {
+    collection.findFirst.mockResolvedValueOnce(null);
+    await expect(service.findBySlug('nope')).rejects.toThrow(NotFoundException);
+  });
+
+  it('maps detail: decimals to strings, rarity distribution, pack summary', async () => {
+    collection.findFirst.mockResolvedValueOnce({
+      id: '1',
+      slug: 's',
+      name: 'N',
+      category: 'TCG',
+      source: 'API_IMPORT',
+      status: 'PUBLISHED',
+      releaseYear: 2023,
+      coverImageUrl: null,
+      brand: { slug: 'pokemon', name: 'Pokémon' },
+      createdBy: { username: 'neo' },
+      items: [
+        {
+          id: 'i1',
+          name: 'A',
+          rarity: Rarity.COMMON,
+          imageUrl: null,
+          officialPullRate: { toString: () => '0.50000000' },
+        },
+        {
+          id: 'i2',
+          name: 'B',
+          rarity: Rarity.COMMON,
+          imageUrl: null,
+          officialPullRate: null,
+        },
+        {
+          id: 'i3',
+          name: 'C',
+          rarity: Rarity.RARE,
+          imageUrl: null,
+          officialPullRate: null,
+        },
+      ],
+      packTypes: [
+        {
+          id: 'p1',
+          name: 'Booster',
+          price: { toString: () => '4.50' },
+          packModel: { slots: [{ rarity: Rarity.COMMON, count: 5 }] },
+        },
+      ],
+    });
+
+    const detail = await service.findBySlug('s');
+    expect(detail.createdBy).toEqual({ username: 'neo' });
+    expect(detail.items[0].officialPullRate).toBe('0.50000000');
+    expect(detail.items[1].officialPullRate).toBeNull();
+    expect(detail.rarityDistribution).toEqual([
+      { rarity: 'COMMON', count: 2 },
+      { rarity: 'RARE', count: 1 },
+    ]);
+    expect(detail.packTypes[0]).toEqual({
+      id: 'p1',
+      name: 'Booster',
+      price: '4.50',
+      summary: '5 cards',
+    });
   });
 });
