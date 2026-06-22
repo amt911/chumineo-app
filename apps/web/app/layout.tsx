@@ -1,21 +1,29 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import { Providers } from "./providers";
+import type { Metadata } from 'next';
+import { Inter, Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google';
+import './globals.css';
+import { Providers } from './providers';
+import { SiteHeader } from '@/components/layout/site-header';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const jakartaSans = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  variable: '--font-display',
+  weight: ['400', '500', '600', '700', '800'],
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono-code',
+  weight: ['400', '500'],
 });
 
 export const metadata: Metadata = {
-  title: "SobreBox",
-  description: "Track, analyze and trade surprise-box collectibles.",
+  title: 'SobreBox',
+  description: 'Track, analyze and trade surprise-box collectibles.',
 };
 
 export default function RootLayout({
@@ -24,11 +32,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <Providers>{children}</Providers>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${inter.variable} ${jakartaSans.variable} ${jetbrainsMono.variable}`}
+    >
+      <body className="antialiased">
+        <Providers>
+          <SiteHeader />
+          <main className="container mx-auto px-6 py-8">{children}</main>
+        </Providers>
       </body>
     </html>
   );
