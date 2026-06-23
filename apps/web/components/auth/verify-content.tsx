@@ -5,16 +5,17 @@ import { verifyEmail } from '@/lib/api';
 
 export function VerifyContent() {
   const params = useSearchParams();
-  const [state, setState] = useState<'pending' | 'ok' | 'error'>('pending');
-  const [message, setMessage] = useState('Verifying…');
+  const token = params.get('token');
+  // Derive the no-token state during render so we don't setState in the effect.
+  const [state, setState] = useState<'pending' | 'ok' | 'error'>(
+    token ? 'pending' : 'error',
+  );
+  const [message, setMessage] = useState(
+    token ? 'Verifying…' : 'Missing verification token.',
+  );
 
   useEffect(() => {
-    const token = params.get('token');
-    if (!token) {
-      setState('error');
-      setMessage('Missing verification token.');
-      return;
-    }
+    if (!token) return;
     verifyEmail(token)
       .then((res) => {
         setState('ok');
@@ -24,7 +25,7 @@ export function VerifyContent() {
         setState('error');
         setMessage(err instanceof Error ? err.message : 'Verification failed');
       });
-  }, [params]);
+  }, [token]);
 
   return <p role={state === 'error' ? 'alert' : 'status'}>{message}</p>;
 }
