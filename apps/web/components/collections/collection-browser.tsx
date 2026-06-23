@@ -41,7 +41,7 @@ export function CollectionBrowser() {
     });
     obs.observe(el);
     return () => obs.disconnect();
-  }, [query.hasNextPage, query.isFetchingNextPage, query]);
+  }, [query.hasNextPage, query.isFetchingNextPage, query.fetchNextPage]);
 
   const items = query.data?.pages.flatMap((p) => p.items) ?? [];
 
@@ -94,7 +94,7 @@ export function CollectionBrowser() {
 
         {query.isError && <p role="alert">Could not load collections.</p>}
         {query.isPending && <p className="text-muted-foreground">Loading…</p>}
-        {!query.isPending && items.length === 0 && (
+        {query.isSuccess && items.length === 0 && (
           <p className="text-muted-foreground">
             No collections match your filters.
           </p>

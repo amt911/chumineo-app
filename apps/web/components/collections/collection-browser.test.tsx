@@ -27,7 +27,9 @@ vi.mock('@/lib/api', () => ({
 }));
 
 function renderBrowser() {
-  const client = new QueryClient();
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   return render(
     <QueryClientProvider client={client}>
       <CollectionBrowser />
