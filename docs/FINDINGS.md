@@ -70,3 +70,26 @@
 ## Pendiente (Playwright)
 
 - Playwright (e2e de frontend) está **declarado pero diferido a la épica 3** (animación de apertura). Aún no hay script de frontend-e2e.
+
+## Docker / deploy (Coolify)
+
+- **Next standalone necesita Next 16:** los builds de producción con Turbopack emiten
+  `output:'standalone'` solo en **16+** (15.5 no). Fija `outputFileTracingRoot` a la raíz
+  del repo para que el layout del monorepo sea determinista:
+  `apps/web/.next/standalone/apps/web/server.js`.
+- **nest build sacaba `dist/src/main.js`, no `dist/main.js`:** `tsconfig.build.json` no
+  excluía `prisma/`, así que `prisma/seed.ts` se compilaba y empujaba el rootDir a
+  `apps/api` → salida en `dist/src/`. El `start:prod` (`node dist/main`) estaba latentemente
+  roto. Fix: excluir `prisma` en `tsconfig.build.json` → solo `src/` → `dist/main.js`.
+- **Imagen api: copia `apps/api/prisma/` ANTES de `pnpm install`.** El `postinstall` de la
+  api corre `prisma generate`, que lee `schema.prisma`; sin él, el install falla.
+- **argon2 es nativo** → el build stage de la api necesita Alpine `python3 make g++`. El
+  prod stage no (el `.node` compilado viaja en `node_modules`).
+- **El CLI `prisma` es devDependency** pero el entrypoint prod corre `prisma migrate
+deploy` → la imagen prod copia todo el `/app` construido (incluye el CLI). Slimming diferido.
+- **compose dev sobrescribe el env del host:** dentro de la red de compose la db/redis se
+  alcanzan por nombre de servicio (`sobrebox-db`, `sobrebox-redis`), no por los puertos de
+  host del `.env`; los volúmenes anónimos preservan el `node_modules` del contenedor (argon2 musl).
+- **El entorno es podman-compose** (no docker-compose): `docker compose rm` no existe; usa
+  `docker compose stop` + `docker rm -f <contenedor>`. El port-forward de podman puede dar
+  "connection reset" justo al arrancar — espera unos segundos.
