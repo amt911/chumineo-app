@@ -6,3 +6,6 @@ coverage/
 *.log
 .env
 .env.local
+
+# graphify output — regenerable via /graphify (graph + AST cache)
+graphify-out/
