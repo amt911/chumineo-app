@@ -6,11 +6,11 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "${POSTGRES_HOST_PORT}:5432"
+      - '${POSTGRES_HOST_PORT}:5432'
     volumes:
       - sobrebox_db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER}']
       interval: 5s
       timeout: 5s
       retries: 5
@@ -18,13 +18,63 @@ services:
   sobrebox-redis:
     image: redis:7
     ports:
-      - "${REDIS_HOST_PORT}:6379"
+      - '${REDIS_HOST_PORT}:6379'
 
   sobrebox-mailpit:
     image: axllent/mailpit:latest
     ports:
-      - "${MAILPIT_SMTP_PORT}:1025"
-      - "${MAILPIT_UI_PORT}:8025"
+      - '${MAILPIT_SMTP_PORT}:1025'
+      - '${MAILPIT_UI_PORT}:8025'
+
+  # Local full-docker dev (hot reload). Coolify prod does NOT use this compose —
+  # it builds the `prod` Dockerfile targets as separate apps. Inside this network
+  # db/redis are reached by service name, overriding the host-oriented .env.
+  sobrebox-api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: dev
+    depends_on:
+      sobrebox-db:
+        condition: service_healthy
+      sobrebox-redis:
+        condition: service_started
+    environment:
+      NODE_ENV: development
+      API_PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@sobrebox-db:5432/${POSTGRES_DB}
+      REDIS_URL: redis://sobrebox-redis:6379
+      MAIL_TRANSPORT: smtp
+      MAIL_SMTP_HOST: sobrebox-mailpit
+      MAIL_SMTP_PORT: 1025
+      CORS_ORIGINS: http://localhost:${WEB_PORT}
+    ports:
+      - '${API_PORT}:3000'
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/apps/api/node_modules
+      - /app/packages/shared/node_modules
+
+  sobrebox-web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: dev
+    depends_on:
+      - sobrebox-api
+    environment:
+      NODE_ENV: development
+      WEB_PORT: 3000
+      API_INTERNAL_URL: http://sobrebox-api:3000
+      API_PROXY_TARGET: http://sobrebox-api:3000
+    ports:
+      - '${WEB_PORT}:3000'
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/apps/web/node_modules
+      - /app/packages/shared/node_modules
 
 volumes:
   sobrebox_db_data:
