@@ -38,6 +38,16 @@ export default async function CollectionDetailPage({
   return (
     <main className="container mx-auto px-6 py-8">
       <header className="mb-8 flex flex-col gap-2">
+        <div
+          className="aspect-[3/1] w-full rounded-lg bg-muted bg-cover bg-center"
+          style={
+            detail.coverImageUrl
+              ? { backgroundImage: `url(${detail.coverImageUrl})` }
+              : undefined
+          }
+          role="img"
+          aria-label={detail.name}
+        />
         <div className="flex items-center gap-3">
           <h1 className="font-heading text-3xl font-bold">{detail.name}</h1>
           <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">

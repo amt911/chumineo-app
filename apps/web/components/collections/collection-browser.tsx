@@ -26,22 +26,20 @@ export function CollectionBrowser() {
     getNextPageParam: (last) => (last.hasMore ? last.page + 1 : undefined),
   });
 
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = query;
+
   const sentinel = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     const el = sentinel.current;
     if (!el) return;
     const obs = new IntersectionObserver((entries) => {
-      if (
-        entries[0].isIntersecting &&
-        query.hasNextPage &&
-        !query.isFetchingNextPage
-      ) {
-        void query.fetchNextPage();
+      if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+        void fetchNextPage();
       }
     });
     obs.observe(el);
     return () => obs.disconnect();
-  }, [query.hasNextPage, query.isFetchingNextPage, query.fetchNextPage]);
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const items = query.data?.pages.flatMap((p) => p.items) ?? [];
 
@@ -113,7 +111,7 @@ export function CollectionBrowser() {
         </div>
 
         <div ref={sentinel} className="h-8" />
-        {query.isFetchingNextPage && (
+        {isFetchingNextPage && (
           <p className="text-muted-foreground">Loading more…</p>
         )}
       </div>
