@@ -10,3 +10,6 @@ export * from './dto/collection.dto';
 export * from './schemas/auth.schema';
 export * from './dto/user.dto';
 export * from './dto/auth.dto';
+export * from './schemas/collection-query.schema';
+export * from './dto/brand.dto';
+export * from './pack-models/summary';

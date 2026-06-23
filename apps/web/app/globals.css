@@ -81,6 +81,13 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  /* rarity system (design-system.md) */
+  --rarity-common: oklch(0.72 0.03 250);
+  --rarity-uncommon: oklch(0.78 0.16 150);
+  --rarity-rare: oklch(0.72 0.16 255);
+  --rarity-ultra: oklch(0.72 0.17 300);
+  --rarity-secret: oklch(0.78 0.16 75);
+  --rarity-limited: oklch(0.7 0.2 20);
 }
 
 .dark {
@@ -115,6 +122,13 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  /* rarity system (design-system.md) */
+  --rarity-common: oklch(0.74 0.03 250);
+  --rarity-uncommon: oklch(0.82 0.17 150);
+  --rarity-rare: oklch(0.76 0.16 255);
+  --rarity-ultra: oklch(0.78 0.17 300);
+  --rarity-secret: oklch(0.83 0.16 75);
+  --rarity-limited: oklch(0.74 0.2 20);
 }
 
 @layer base {

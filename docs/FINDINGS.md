@@ -57,6 +57,16 @@
 - **Refresh cookie `sameSite`**: dev is same-site (localhost different ports) so
   `sameSite=lax`; prod cross-site needs `sameSite=none; secure` (gated on NODE_ENV).
 
+## Catalog
+
+- `GET /collections` returns a PAGED object `{ items, page, pageSize, total, hasMore }`
+  (not a flat array). Query params: `page,limit,brand,category,year,q,sort`.
+- Pack-type size labels come from the shared `packSummary(category, packModel)`
+  helper (`packages/shared/src/pack-models/summary.ts`); it validates via the
+  registry and returns "Unknown pack" rather than throwing on a bad packModel.
+- Postgres enum order = declaration order, so `orderBy: { rarity: 'asc' }` yields
+  COMMON→…→LIMITED — relied on for the detail items + rarity distribution order.
+
 ## Pendiente (Playwright)
 
 - Playwright (e2e de frontend) está **declarado pero diferido a la épica 3** (animación de apertura). Aún no hay script de frontend-e2e.

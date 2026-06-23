@@ -1,12 +1,10 @@
-import { CollectionList } from '@/components/collections/collection-list';
-import { fetchCollections } from '@/lib/api';
+import { CollectionBrowser } from '@/components/collections/collection-browser';
 
-export default async function CollectionsPage() {
-  const collections = await fetchCollections();
+export default function CollectionsPage() {
   return (
-    <main>
-      <h1>Collections</h1>
-      <CollectionList collections={collections} />
+    <main className="container mx-auto px-6 py-8">
+      <h1 className="mb-6 font-heading text-2xl font-bold">Collections</h1>
+      <CollectionBrowser />
     </main>
   );
 }
