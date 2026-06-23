@@ -10,6 +10,11 @@ import type {
   PublicUserDto,
   RegisterDto,
 } from '@sobrebox/shared';
+import {
+  brandsResponseSchema,
+  collectionDetailSchema,
+  collectionsPageSchema,
+} from '@sobrebox/shared';
 
 // Server components (RSC) fetch the API directly on the host (absolute URL).
 // Browser code calls the same-origin `/api` path, which Next rewrites to the API
@@ -38,13 +43,13 @@ export async function fetchCollectionsPage(
     cache: 'no-store',
   });
   if (!res.ok) throw new Error(`Failed to fetch collections: ${res.status}`);
-  return res.json() as Promise<CollectionsPageDto>;
+  return collectionsPageSchema.parse(await res.json());
 }
 
 export async function fetchBrands(): Promise<BrandDto[]> {
   const res = await fetch(`${API_URL}/brands`, { cache: 'no-store' });
   if (!res.ok) throw new Error(`Failed to fetch brands: ${res.status}`);
-  return res.json() as Promise<BrandDto[]>;
+  return brandsResponseSchema.parse(await res.json());
 }
 
 export async function fetchCollectionDetail(
@@ -54,7 +59,7 @@ export async function fetchCollectionDetail(
     cache: 'no-store',
   });
   if (!res.ok) throw new Error(`Failed to fetch collection: ${res.status}`);
-  return res.json() as Promise<CollectionDetailDto>;
+  return collectionDetailSchema.parse(await res.json());
 }
 
 async function postJson<T>(path: string, body: unknown): Promise<T> {

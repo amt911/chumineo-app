@@ -31,12 +31,7 @@ export function CollectionCard({
   } = collection;
   return (
     <Link href={`/collections/${slug}`} className="group block">
-      <Card
-        className={cn(
-          'overflow-hidden transition-colors hover:border-primary/50',
-          variant === 'list' && 'flex-row',
-        )}
-      >
+      <Card className="overflow-hidden transition-colors hover:border-primary/50">
         <CardContent
           className={cn(
             'p-4',

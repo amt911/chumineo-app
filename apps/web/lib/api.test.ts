@@ -44,6 +44,17 @@ describe('fetchCollectionsPage', () => {
     );
     await expect(fetchCollectionsPage({})).rejects.toThrow(/500/);
   });
+
+  it('rejects when the response payload is invalid', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ bad: true }),
+      }),
+    );
+    await expect(fetchCollectionsPage({})).rejects.toThrow();
+  });
 });
 
 describe('fetchBrands', () => {
@@ -72,15 +83,30 @@ describe('fetchBrands', () => {
 });
 
 describe('fetchCollectionDetail', () => {
-  it('returns the detail json', async () => {
+  const validDetail = {
+    id: 'col-1',
+    slug: 's',
+    name: 'Test Collection',
+    category: 'TCG' as const,
+    source: 'API_IMPORT' as const,
+    status: 'PUBLISHED' as const,
+    releaseYear: 2023,
+    coverImageUrl: null,
+    brand: { slug: 'pokemon', name: 'Pokémon' },
+    createdBy: null,
+    rarityDistribution: [],
+    items: [],
+    packTypes: [],
+  };
+
+  it('returns the detail json for a valid payload', async () => {
     vi.stubGlobal(
       'fetch',
-      vi
-        .fn()
-        .mockResolvedValue({ ok: true, json: async () => ({ slug: 's' }) }),
+      vi.fn().mockResolvedValue({ ok: true, json: async () => validDetail }),
     );
-    await expect(fetchCollectionDetail('s')).resolves.toEqual({ slug: 's' });
+    await expect(fetchCollectionDetail('s')).resolves.toEqual(validDetail);
   });
+
   it('throws on non-ok', async () => {
     vi.stubGlobal(
       'fetch',
