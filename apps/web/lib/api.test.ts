@@ -261,3 +261,58 @@ describe('fetchMe', () => {
     await expect(fetchMe('bad')).rejects.toThrow(/401/);
   });
 });
+
+import {
+  fetchInventoryProgress,
+  addInventoryItem,
+  deleteInventoryItem,
+  fetchWishlist,
+} from './api';
+
+afterEach(() => vi.restoreAllMocks());
+
+function mockFetch(status: number, body: unknown) {
+  return vi.spyOn(global, 'fetch').mockResolvedValue({
+    ok: status >= 200 && status < 300,
+    status,
+    json: async () => body,
+  } as Response);
+}
+
+describe('inventory/wishlist api wrappers', () => {
+  it('fetchInventoryProgress validates the response', async () => {
+    mockFetch(200, [
+      { collection: { slug: 's', name: 'N' }, owned: 1, total: 2, percent: 50 },
+    ]);
+    const r = await fetchInventoryProgress('tok');
+    expect(r[0].percent).toBe(50);
+  });
+
+  it('addInventoryItem sends a Bearer token', async () => {
+    const spy = mockFetch(201, {
+      id: 'inv1',
+      quantity: 1,
+      condition: null,
+      item: { id: 'ci1', name: 'A', rarity: 'COMMON', imageUrl: null },
+      collection: { slug: 's', name: 'N' },
+    });
+    await addInventoryItem({ collectionItemId: 'ci1', quantity: 1 }, 'tok');
+    expect(spy).toHaveBeenCalledWith(
+      expect.stringContaining('/inventory'),
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({ Authorization: 'Bearer tok' }),
+      }),
+    );
+  });
+
+  it('deleteInventoryItem tolerates a 204', async () => {
+    mockFetch(204, null);
+    await expect(deleteInventoryItem('inv1', 'tok')).resolves.toBeUndefined();
+  });
+
+  it('fetchWishlist throws on a non-ok response', async () => {
+    mockFetch(401, { message: 'nope' });
+    await expect(fetchWishlist('tok')).rejects.toThrow();
+  });
+});
