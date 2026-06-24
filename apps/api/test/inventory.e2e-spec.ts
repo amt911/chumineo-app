@@ -89,7 +89,7 @@ describe('Inventory (e2e)', () => {
       .get(`/inventory/collections/${slug}/progress`)
       .set(auth())
       .expect(200);
-    expect(progress.body.owned).toBeGreaterThanOrEqual(1);
+    expect(progress.body.owned).toBe(1);
     expect(
       progress.body.items.find(
         (i: { collectionItemId: string }) =>
@@ -102,12 +102,15 @@ describe('Inventory (e2e)', () => {
       .set(auth())
       .expect(200);
     expect(summaries.body.length).toBeGreaterThanOrEqual(1);
+    expect(summaries.body[0]).toHaveProperty('collection');
+    expect(summaries.body[0]).toHaveProperty('percent');
 
-    await request(server)
+    const patched = await request(server)
       .patch(`/inventory/${invId}`)
       .set(auth())
       .send({ quantity: 5 })
       .expect(200);
+    expect(patched.body.quantity).toBe(5);
 
     await request(server).delete(`/inventory/${invId}`).set(auth()).expect(204);
   });
