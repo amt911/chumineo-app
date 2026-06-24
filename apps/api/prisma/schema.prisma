@@ -35,6 +35,20 @@ enum CollectionSource {
   ADMIN
 }
 
+enum Condition {
+  MINT
+  NEAR_MINT
+  GOOD
+  PLAYED
+  DAMAGED
+}
+
+enum WishlistPriority {
+  HIGH
+  MEDIUM
+  LOW
+}
+
 model User {
   id            String   @id @default(cuid())
   email         String   @unique
@@ -49,6 +63,7 @@ model User {
   revisions          CollectionRevision[]
   openings           Opening[]
   inventory          UserInventory[]
+  wishlist           WishlistItem[]
   sessions           Session[]
   verificationTokens VerificationToken[]
 }
@@ -123,8 +138,9 @@ model CollectionItem {
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 
-  openingItems OpeningItem[]
-  inventory    UserInventory[]
+  openingItems   OpeningItem[]
+  inventory      UserInventory[]
+  wishlistItems  WishlistItem[]
 
   @@index([collectionId])
   @@index([externalId])
@@ -175,9 +191,24 @@ model UserInventory {
   collectionItemId String
   collectionItem   CollectionItem @relation(fields: [collectionItemId], references: [id])
   quantity         Int            @default(1)
-  condition        String?
+  condition        Condition?
 
   @@unique([userId, collectionItemId])
+}
+
+model WishlistItem {
+  id               String           @id @default(cuid())
+  userId           String
+  user             User             @relation(fields: [userId], references: [id])
+  collectionItemId String
+  collectionItem   CollectionItem   @relation(fields: [collectionItemId], references: [id])
+  priority         WishlistPriority @default(MEDIUM)
+  maxPrice         Decimal?         @db.Decimal(12, 2)
+  isPublic         Boolean          @default(true)
+  createdAt        DateTime         @default(now())
+
+  @@unique([userId, collectionItemId])
+  @@index([userId])
 }
 
 model CollectionRevision {
