@@ -36,7 +36,7 @@ export class WishlistService {
     return wishlistItemSchema.parse({
       id: row.id,
       priority: row.priority,
-      maxPrice: row.maxPrice?.toString() ?? null,
+      maxPrice: row.maxPrice != null ? row.maxPrice.toFixed(2) : null,
       isPublic: row.isPublic,
       item: {
         id: row.collectionItem.id,

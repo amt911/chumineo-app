@@ -14,8 +14,8 @@ interface PrismaMock {
   };
 }
 
-// maxPrice comes back from Prisma as a Decimal-like with .toString()
-const decimal = (s: string) => ({ toString: () => s });
+// maxPrice comes back from Prisma as a Decimal-like with .toString() and .toFixed()
+const decimal = (s: string) => ({ toFixed: () => s, toString: () => s });
 
 const row = (over: Record<string, unknown> = {}) => ({
   id: 'w1',
