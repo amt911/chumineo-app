@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import path from 'node:path';
 
 // Comma-separated hostnames/IPs allowed to reach the Turbopack dev server from a
 // different origin (Next 15.2+ refuses the cross-origin HMR websocket otherwise).
@@ -17,6 +18,11 @@ const allowedDevOrigins = (process.env.ALLOWED_DEV_ORIGINS ?? '')
 const apiProxyTarget = process.env.API_PROXY_TARGET ?? 'http://localhost:3000';
 
 const nextConfig: NextConfig = {
+  // Standalone server for the Docker prod image (self-contained .next/standalone).
+  output: 'standalone',
+  // Pin the file-tracing root to the monorepo root so the standalone layout is
+  // deterministic: .next/standalone/apps/web/server.js + .next/standalone/node_modules.
+  outputFileTracingRoot: path.join(__dirname, '../../'),
   transpilePackages: ['@sobrebox/shared'],
   ...(allowedDevOrigins.length > 0 ? { allowedDevOrigins } : {}),
   async rewrites() {
