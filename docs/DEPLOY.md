@@ -33,5 +33,9 @@ uses Mailpit. The transport switch already exists — no code change.
 
 ## Local full-docker (parity)
 
-`docker compose up --build` runs db + redis + mailpit + api + web with hot
-reload. `pnpm dev` (apps on host) still works as the lighter alternative.
+- `pnpm dev:docker` — db + redis + mailpit + **api + web in containers**, hot reload.
+- `pnpm dev:docker:tailscale` — same, reachable from a phone on the tailnet (injects
+  the detected tailnet origins into the web `ALLOWED_DEV_ORIGINS` and the api
+  `WEB_PUBLIC_URL`/`CORS_ORIGINS`).
+- `pnpm dev` / `pnpm dev:tailscale` — lighter: infra in docker, **api + web on host**.
+- `pnpm infra:up` brings up only the infra services (db/redis/mailpit).

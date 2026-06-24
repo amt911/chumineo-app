@@ -47,7 +47,9 @@ services:
       MAIL_TRANSPORT: smtp
       MAIL_SMTP_HOST: sobrebox-mailpit
       MAIL_SMTP_PORT: 1025
-      CORS_ORIGINS: http://localhost:${WEB_PORT}
+      # From .env (localhost) or overridden by the tailscale wrapper for mobile.
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      WEB_PUBLIC_URL: ${WEB_PUBLIC_URL}
     ports:
       - '${API_PORT}:3000'
     volumes:
@@ -68,6 +70,9 @@ services:
       WEB_PORT: 3000
       API_INTERNAL_URL: http://sobrebox-api:3000
       API_PROXY_TARGET: http://sobrebox-api:3000
+      # Tailnet origins so Next allows the phone's cross-origin dev requests.
+      # Empty from .env; set by the tailscale wrapper (dev:docker:tailscale).
+      ALLOWED_DEV_ORIGINS: ${ALLOWED_DEV_ORIGINS}
     ports:
       - '${WEB_PORT}:3000'
     volumes:
