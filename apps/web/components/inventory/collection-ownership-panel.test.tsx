@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Rarity } from '@sobrebox/shared';
+import { Rarity, WishlistPriority } from '@sobrebox/shared';
 import { CollectionOwnershipPanel } from './collection-ownership-panel';
 import { useAuthStore } from '@/lib/auth-store';
 import * as api from '@/lib/api';
@@ -92,6 +92,41 @@ describe('CollectionOwnershipPanel', () => {
     await waitFor(() =>
       expect(add).toHaveBeenCalledWith(
         { collectionItemId: 'b', quantity: 1 },
+        'tok',
+      ),
+    );
+  });
+
+  it('calls addWishlistItem when clicking Wishlist for a missing item', async () => {
+    useAuthStore.setState({
+      accessToken: 'tok',
+      user: {
+        id: 'u1',
+        email: 'a@b',
+        username: 'neo',
+        emailVerified: true,
+        avatarUrl: null,
+      },
+    });
+    vi.spyOn(api, 'fetchCollectionProgress').mockResolvedValue(progress);
+    const wish = vi.spyOn(api, 'addWishlistItem').mockResolvedValue({
+      id: 'w1',
+      priority: WishlistPriority.HIGH,
+      maxPrice: null,
+      isPublic: true,
+      item: { id: 'b', name: 'B', rarity: Rarity.RARE, imageUrl: null },
+      collection: { slug: 's', name: 'N' },
+    });
+    wrap(<CollectionOwnershipPanel slug="s" />);
+    await waitFor(() => screen.getByText('B'));
+    fireEvent.click(screen.getByRole('button', { name: /wishlist/i }));
+    await waitFor(() =>
+      expect(wish).toHaveBeenCalledWith(
+        {
+          collectionItemId: 'b',
+          priority: WishlistPriority.MEDIUM,
+          isPublic: true,
+        },
         'tok',
       ),
     );

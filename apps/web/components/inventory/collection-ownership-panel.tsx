@@ -42,6 +42,7 @@ export function CollectionOwnershipPanel({ slug }: { slug: string }) {
         },
         accessToken as string,
       ),
+    onSuccess: invalidate,
   });
 
   if (!accessToken) return null;
