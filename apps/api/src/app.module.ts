@@ -7,6 +7,7 @@ import { UsersModule } from './users/users.module';
 import { CollectionsModule } from './collections/collections.module';
 import { BrandsModule } from './brands/brands.module';
 import { InventoryModule } from './inventory/inventory.module';
+import { WishlistModule } from './wishlist/wishlist.module';
 import { HealthController } from './health/health.controller';
 
 @Module({
@@ -24,6 +25,7 @@ import { HealthController } from './health/health.controller';
     CollectionsModule,
     BrandsModule,
     InventoryModule,
+    WishlistModule,
   ],
   controllers: [HealthController],
 })
