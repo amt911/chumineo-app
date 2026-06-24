@@ -67,6 +67,23 @@
 - Postgres enum order = declaration order, so `orderBy: { rarity: 'asc' }` yields
   COMMON→…→LIMITED — relied on for the detail items + rarity distribution order.
 
+## Inventory / Wishlist
+
+- `UserInventory.condition` and `WishlistItem` migrated `condition` from `String?`
+  to the `Condition` enum; the repo seed never set it, so no data migration was
+  needed. New enums `Condition` + `WishlistPriority` are parity-guarded.
+- `WishlistItem.maxPrice` is `Decimal(12,2)` → serializes as a **string** over HTTP
+  (DTO `z.string()`), same as `officialPullRate`/`price`.
+- "Lo que falta" is **derived on read** (collection items − owned), no counter table.
+  `GET /inventory/progress` returns light summaries; `/inventory/collections/:slug/progress`
+  returns the full per-item list. Catalog endpoints stay public/untouched.
+- `priority asc` / `rarity asc` rely on Postgres enum **declaration order**
+  (HIGH→LOW, COMMON→LIMITED).
+- Prisma `Decimal.toString()` drops trailing zeros (`80.00` → `'80'`); for fixed-scale
+  money DTOs use `.toFixed(scale)` instead. `wishlist.service` maxPrice uses `.toFixed(2)`.
+  NOTE: `catalog` service still uses `.toString()` for `price`/`officialPullRate` — same
+  latent issue, follow-up.
+
 ## Pendiente (Playwright)
 
 - Playwright (e2e de frontend) está **declarado pero diferido a la épica 3** (animación de apertura). Aún no hay script de frontend-e2e.
