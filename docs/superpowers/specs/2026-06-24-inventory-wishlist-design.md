@@ -130,8 +130,9 @@ the same change (bump the date).
 | POST   | `/inventory`                            | `{ collectionItemId, quantity?=1, condition? }` | upserts `UserInventory` (increments `quantity` by the given amount; sets `condition` if provided) → `InventoryItemDto` |
 | PATCH  | `/inventory/:id`                        | `{ quantity?≥1, condition? }`                   | owner-only; 404 if not caller's → updated `InventoryItemDto`                                                           |
 | DELETE | `/inventory/:id`                        | —                                               | owner-only; 404 if not caller's → 204                                                                                  |
-| GET    | `/inventory`                            | `?collectionId?`                                | array of `InventoryItemDto` (item + collection summary attached)                                                       |
-| GET    | `/inventory/collections/:slug/progress` | —                                               | `CollectionProgressDto`                                                                                                |
+| GET    | `/inventory`                            | —                                               | array of `InventoryItemDto` (all my rows; item + collection summary attached)                                          |
+| GET    | `/inventory/progress`                   | —                                               | array of `CollectionProgressSummaryDto` (one per collection I own ≥1 item in) — backs the `/inventory` page cards      |
+| GET    | `/inventory/collections/:slug/progress` | —                                               | `CollectionProgressDto` (the full version, with the per-item `items[]` for the missing list)                           |
 
 Notes:
 
@@ -141,6 +142,11 @@ Notes:
   US-15, enforced at the controller/service boundary, not a magic 0 in PATCH).
 - `:id` is the `UserInventory.id`. Service filters `where: { id, userId }`;
   a miss → `NotFoundException`.
+- `GET /inventory/progress` returns lightweight summaries (no `items[]`); the
+  `/inventory` page lists them as cards and only fetches the heavy per-`:slug`
+  endpoint when a card is expanded or the user opens the collection detail.
+- `GET /inventory` (flat list) backs the US-14 "vista global"; pagination,
+  filters and search on it are the deferred polish followup.
 
 ### 4.2 `wishlist/` module
 
@@ -173,13 +179,14 @@ updateInventoryItemSchema; // { quantity?: int≥1; condition?: Condition } — 
 inventoryItemSchema; // response: { id, quantity, condition: Condition|null,
 //   item: { id, name, rarity, imageUrl|null },
 //   collection: { slug, name } }
-collectionProgressSchema; // { collection: { slug, name }, owned: int, total: int,
-//   percent: int (0–100, floor),
-//   items: [{ collectionItemId, name, rarity, ownedQuantity: int }] }
+collectionProgressSummarySchema; // { collection: { slug, name }, owned: int, total: int, percent: int }
+collectionProgressSchema; // summary + items: [{ collectionItemId, name, rarity, ownedQuantity: int }]
 ```
 
 `ownedQuantity === 0` ⇒ the item is "missing". `percent = floor(owned/total*100)`,
-`0` when `total === 0`.
+`0` when `total === 0`. `collectionProgressSchema` extends the summary with the
+full `items[]`; `GET /inventory/progress` returns the summary array, the
+per-`:slug` endpoint returns the full object.
 
 ### 5.3 `dto/wishlist.dto.ts`
 
