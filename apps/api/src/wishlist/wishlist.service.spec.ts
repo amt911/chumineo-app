@@ -98,4 +98,30 @@ describe('WishlistService', () => {
       NotFoundException,
     );
   });
+
+  it('deletes an owned wishlist row', async () => {
+    prisma.wishlistItem.findFirst.mockResolvedValue({ id: 'w1' });
+    prisma.wishlistItem.delete.mockResolvedValue(row());
+    await service.remove('u1', 'w1');
+    expect(prisma.wishlistItem.delete).toHaveBeenCalledWith({
+      where: { id: 'w1' },
+    });
+  });
+
+  describe('listMine', () => {
+    it('returns an empty array when the user has no wishlist items', async () => {
+      prisma.wishlistItem.findMany.mockResolvedValue([]);
+      expect(await service.listMine('u1')).toEqual([]);
+    });
+    it('maps each row to a DTO array with maxPrice as string', async () => {
+      prisma.wishlistItem.findMany.mockResolvedValue([row()]);
+      const dtos = await service.listMine('u1');
+      expect(dtos).toHaveLength(1);
+      expect(dtos[0].maxPrice).toBe('80.00');
+      expect(dtos[0].item.name).toBe('Umbreon');
+      expect(prisma.wishlistItem.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { userId: 'u1' } }),
+      );
+    });
+  });
 });

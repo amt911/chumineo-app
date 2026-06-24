@@ -57,4 +57,10 @@ describe('WishlistList', () => {
     fireEvent.click(screen.getByRole('button', { name: /quitar/i }));
     await waitFor(() => expect(del).toHaveBeenCalledWith('w1', 'tok'));
   });
+
+  it('shows a login hint when not authenticated', () => {
+    useAuthStore.setState({ accessToken: null, user: null });
+    wrap(<WishlistList />);
+    expect(screen.getByText(/inicia sesi[oó]n/i)).toBeInTheDocument();
+  });
 });

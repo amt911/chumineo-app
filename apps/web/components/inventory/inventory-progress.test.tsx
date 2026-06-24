@@ -52,4 +52,10 @@ describe('InventoryProgress', () => {
       expect(screen.getByText(/todav[íi]a no tienes/i)).toBeInTheDocument(),
     );
   });
+
+  it('shows a login hint when not authenticated', () => {
+    useAuthStore.setState({ accessToken: null, user: null });
+    wrap(<InventoryProgress />);
+    expect(screen.getByText(/inicia sesi[oó]n/i)).toBeInTheDocument();
+  });
 });

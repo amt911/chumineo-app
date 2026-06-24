@@ -154,6 +154,33 @@ describe('InventoryService', () => {
     });
   });
 
+  describe('listMine', () => {
+    it('returns an empty array when the user owns nothing', async () => {
+      prisma.userInventory.findMany.mockResolvedValue([]);
+      expect(await service.listMine('u1')).toEqual([]);
+    });
+    it('maps each row to a DTO array', async () => {
+      prisma.userInventory.findMany.mockResolvedValue([row()]);
+      const dtos = await service.listMine('u1');
+      expect(dtos).toHaveLength(1);
+      expect(dtos[0]).toEqual({
+        id: 'inv1',
+        quantity: 2,
+        condition: null,
+        item: {
+          id: 'ci1',
+          name: 'Charizard',
+          rarity: 'ULTRA_RARE',
+          imageUrl: null,
+        },
+        collection: { slug: 'obsidian-flames', name: 'Obsidian Flames' },
+      });
+      expect(prisma.userInventory.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { userId: 'u1' } }),
+      );
+    });
+  });
+
   describe('progressSummaries', () => {
     it('returns [] when the user owns nothing', async () => {
       prisma.userInventory.findMany.mockResolvedValue([]);
