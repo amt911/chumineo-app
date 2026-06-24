@@ -20,7 +20,7 @@ export function CollectionOwnershipPanel({ slug }: { slug: string }) {
 
   const invalidate = () =>
     queryClient.invalidateQueries({
-      queryKey: ['inventory', 'progress', slug],
+      queryKey: ['inventory', 'progress'],
     });
 
   const markOwned = useMutation({

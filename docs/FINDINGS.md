@@ -83,6 +83,12 @@
   money DTOs use `.toFixed(scale)` instead. `wishlist.service` maxPrice uses `.toFixed(2)`.
   NOTE: `catalog` service still uses `.toString()` for `price`/`officialPullRate` — same
   latent issue, follow-up.
+- **TanStack query keys:** `/inventory` summary uses `['inventory','progress']`; per-collection
+  detail uses `['inventory','progress',slug]`. Invalidate the SHORTER prefix to refresh both
+  (prefix-matching is one-directional — the longer key does NOT match the shorter).
+- **Wishlist POST is upsert-REPLACE:** a second POST for the same item overwrites `priority`/`isPublic`
+  with the request's values (defaults `MEDIUM`/`true` if omitted). Inventory POST instead INCREMENTS
+  quantity. The two verbs differ by design (spec 4.x).
 
 ## Pendiente (Playwright)
 

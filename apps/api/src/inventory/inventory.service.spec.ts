@@ -87,6 +87,9 @@ describe('InventoryService', () => {
           where: {
             userId_collectionItemId: { userId: 'u1', collectionItemId: 'ci1' },
           },
+          update: expect.objectContaining({
+            quantity: { increment: 2 },
+          }),
         }),
       );
     });
