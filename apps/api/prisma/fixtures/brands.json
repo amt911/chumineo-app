@@ -1,0 +1,5 @@
+[
+  { "slug": "pokemon", "name": "Pokémon" },
+  { "slug": "funko", "name": "Funko" },
+  { "slug": "pop-mart", "name": "Pop Mart" }
+]
