@@ -89,6 +89,15 @@
 - **Wishlist POST is upsert-REPLACE:** a second POST for the same item overwrites `priority`/`isPublic`
   with the request's values (defaults `MEDIUM`/`true` if omitted). Inventory POST instead INCREMENTS
   quantity. The two verbs differ by design (spec 4.x).
+- **Docker dev + cambios de lockfile:** los contenedores dev `sobrebox-api`/`sobrebox-web`
+  guardan `node_modules` en **volúmenes anónimos** (enmascaran el host), horneados al construir
+  la imagen. Cuando cambia el lockfile de pnpm (dep nueva), el `node_modules` del contenedor
+  queda stale y pnpm **aborta al arrancar** con `ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY`
+  (quiere purgar+reinstalar, sin TTY). Fix permanente aplicado: `CI: 'true'` en el `environment`
+  de ambos servicios → pnpm reinstala solo. Recuperación puntual sin eso:
+  `docker compose up -d --build --renew-anon-volumes --force-recreate sobrebox-api sobrebox-web`.
+  (El mismo gotcha del volumen anónimo afecta al cliente Prisma generado — regenéralo dentro
+  del contenedor.)
 
 ## Pendiente (Playwright)
 
