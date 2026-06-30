@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   fetchCollectionsPage,
   fetchBrands,
@@ -267,7 +267,9 @@ import {
   addInventoryItem,
   deleteInventoryItem,
   fetchWishlist,
+  refreshSession,
 } from './api';
+import { useAuthStore } from './auth-store';
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -314,5 +316,43 @@ describe('inventory/wishlist api wrappers', () => {
   it('fetchWishlist throws on a non-ok response', async () => {
     mockFetch(401, { message: 'nope' });
     await expect(fetchWishlist('tok')).rejects.toThrow();
+    expect(useAuthStore.getState().accessToken).toBeNull();
+  });
+});
+
+describe('refreshSession + 401 retry', () => {
+  beforeEach(() => {
+    useAuthStore.setState({
+      accessToken: 'old',
+      user: null,
+      status: 'authenticated',
+    });
+  });
+
+  it('refreshSession posts to /api/auth/refresh', async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(
+        new Response(JSON.stringify({ accessToken: 'new' }), { status: 200 }),
+      );
+    expect(await refreshSession()).toEqual({ accessToken: 'new' });
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/auth/refresh',
+      expect.objectContaining({ method: 'POST', credentials: 'include' }),
+    );
+  });
+
+  it('retries an authed call once after a 401 by refreshing', async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response('', { status: 401 })) // wishlist 401
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ accessToken: 'new' }), { status: 200 }),
+      ) // refresh
+      .mockResolvedValueOnce(new Response('[]', { status: 200 })); // retry
+    const data = await fetchWishlist('old');
+    expect(data).toEqual([]);
+    expect(useAuthStore.getState().accessToken).toBe('new');
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 });

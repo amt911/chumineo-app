@@ -18,6 +18,7 @@ import type {
   UpdateWishlistItemDto,
   WishlistItemDto,
 } from '@sobrebox/shared';
+import { useAuthStore } from '@/lib/auth-store';
 import {
   brandsResponseSchema,
   collectionDetailSchema,
@@ -125,10 +126,20 @@ export async function fetchMe(accessToken: string): Promise<PublicUserDto> {
   return res.json() as Promise<PublicUserDto>;
 }
 
+export async function refreshSession(): Promise<{ accessToken: string }> {
+  const res = await fetch(`${API_URL}/auth/refresh`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+  if (!res.ok) throw new Error(`Refresh failed: ${res.status}`);
+  return res.json() as Promise<{ accessToken: string }>;
+}
+
 async function authedJson<T>(
   path: string,
   accessToken: string,
   init?: RequestInit,
+  retry = true,
 ): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
@@ -139,6 +150,16 @@ async function authedJson<T>(
     },
     credentials: 'include',
   });
+  if (res.status === 401 && retry) {
+    try {
+      const { accessToken: fresh } = await refreshSession();
+      useAuthStore.getState().setAccessToken(fresh);
+      return authedJson<T>(path, fresh, init, false);
+    } catch {
+      useAuthStore.getState().clear();
+      throw new Error('Request failed: 401');
+    }
+  }
   if (!res.ok) {
     const data = (await res.json().catch(() => null)) as {
       message?: string;
