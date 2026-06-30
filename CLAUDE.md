@@ -30,6 +30,16 @@ Prefiere **superpowers** sobre enfoques ad-hoc. Si hay aunque sea una pequeña p
 
 Las instrucciones del usuario siempre tienen prioridad sobre las skills; las skills sobreescriben el comportamiento por defecto.
 
+### Interruptor de modos
+
+- **"modo ligero"** — desactiva superpowers por completo: no se invoca ningún skill, ni
+  siquiera el chequeo de si aplica, hasta decir "modo normal".
+- **"modo normal"** (default) — comportamiento estándar de superpowers, más: al delegar
+  trabajo de programación, lanza como mucho 1 agente a la vez, y nunca un modelo superior a
+  Sonnet (nada de Opus).
+
+Confirma brevemente el cambio de modo cuando ocurra.
+
 ---
 
 ## Estrategia de módulos (LEER — es la fuente de verdad)
@@ -49,27 +59,27 @@ Decidida tras un review adversarial; **no desviarse**:
 
 ### Backend (`apps/api/`)
 
-| Tech | Versión | Rol |
-|------|---------|-----|
-| **NestJS** | v10 | Framework principal — módulos, DI, guards, interceptors |
-| **Prisma** | v6 | ORM — schema único, cliente generado, migraciones |
-| **PostgreSQL** | 16 | Base de datos principal |
-| **Zod** (`packages/shared`) | v3 | Validación de DTOs (`ZodValidationPipe`), compartida con el front |
-| **Redis** + **BullMQ** | — | _(planeado, épica stats)_ cache de pull rates + jobs asíncronos |
-| **Passport + JWT** | — | _(planeado, épica auth)_ estrategias `jwt`, `jwt-refresh`, `google`, `discord` |
-| **Resend** / **Mailpit** | — | _(planeado)_ email transaccional (Mailpit como sink en dev) |
-| **Cloudflare R2** (@aws-sdk/client-s3) + **Sharp** | — | _(planeado, épica storage)_ imágenes y procesado |
+| Tech                                               | Versión | Rol                                                                            |
+| -------------------------------------------------- | ------- | ------------------------------------------------------------------------------ |
+| **NestJS**                                         | v10     | Framework principal — módulos, DI, guards, interceptors                        |
+| **Prisma**                                         | v6      | ORM — schema único, cliente generado, migraciones                              |
+| **PostgreSQL**                                     | 16      | Base de datos principal                                                        |
+| **Zod** (`packages/shared`)                        | v3      | Validación de DTOs (`ZodValidationPipe`), compartida con el front              |
+| **Redis** + **BullMQ**                             | —       | _(planeado, épica stats)_ cache de pull rates + jobs asíncronos                |
+| **Passport + JWT**                                 | —       | _(planeado, épica auth)_ estrategias `jwt`, `jwt-refresh`, `google`, `discord` |
+| **Resend** / **Mailpit**                           | —       | _(planeado)_ email transaccional (Mailpit como sink en dev)                    |
+| **Cloudflare R2** (@aws-sdk/client-s3) + **Sharp** | —       | _(planeado, épica storage)_ imágenes y procesado                               |
 
 ### Frontend (`apps/web/`)
 
-| Tech | Versión | Rol |
-|------|---------|-----|
-| **Next.js** | 15 (App Router) | SSR, RSC, routing |
-| **shadcn/ui** | — | Componentes base (en `components/ui/`, **NO editar a mano**); customizados según `design-system.md` |
-| **Tailwind CSS** | v4 | Estilos |
-| **TanStack Query** | v5 | Server state — cache de colecciones, inventario, marketplace |
-| **Zustand** | — | _(planeado)_ client state — apertura en curso, carrito, UI global |
-| **motion-primitives** | — | _(planeado)_ animaciones de apertura |
+| Tech                  | Versión         | Rol                                                                                                 |
+| --------------------- | --------------- | --------------------------------------------------------------------------------------------------- |
+| **Next.js**           | 15 (App Router) | SSR, RSC, routing                                                                                   |
+| **shadcn/ui**         | —               | Componentes base (en `components/ui/`, **NO editar a mano**); customizados según `design-system.md` |
+| **Tailwind CSS**      | v4              | Estilos                                                                                             |
+| **TanStack Query**    | v5              | Server state — cache de colecciones, inventario, marketplace                                        |
+| **Zustand**           | —               | _(planeado)_ client state — apertura en curso, carrito, UI global                                   |
+| **motion-primitives** | —               | _(planeado)_ animaciones de apertura                                                                |
 
 ### Shared (`packages/shared/`)
 
@@ -140,12 +150,12 @@ Para `services/`, `lib/`, schemas de shared, hooks custom y lógica de formulari
 
 No aplica a: cambios puramente visuales (CSS/Tailwind), primitivas shadcn, spikes (se borran o se testean antes de mergear).
 
-| Cambio toca | Correr antes de declarar éxito |
-|---|---|
-| service/controller backend | `pnpm --filter @sobrebox/api test` (+ `pnpm test:e2e` si cruza módulos) |
-| flujo backend e2e | `pnpm test:e2e` |
-| componente/hook/util frontend | `pnpm --filter @sobrebox/web test` |
-| algo ambiguo o grande | `pnpm test:all` |
+| Cambio toca                   | Correr antes de declarar éxito                                          |
+| ----------------------------- | ----------------------------------------------------------------------- |
+| service/controller backend    | `pnpm --filter @sobrebox/api test` (+ `pnpm test:e2e` si cruza módulos) |
+| flujo backend e2e             | `pnpm test:e2e`                                                         |
+| componente/hook/util frontend | `pnpm --filter @sobrebox/web test`                                      |
+| algo ambiguo o grande         | `pnpm test:all`                                                         |
 
 ## Coverage gate (OBLIGATORIO antes de PR)
 
@@ -186,21 +196,21 @@ Primer arranque (incl. clon nuevo): `pnpm install` → `pnpm infra:up` → `pnpm
 
 ## Dominio — conceptos clave
 
-| Concepto | Descripción |
-|----------|-------------|
-| `Collection` | Un set/línea: "Pokémon Escarlata y Púrpura - Llamas Obsidianas" |
-| `CollectionItem` | Ítem concreto dentro de una Collection, con rareza y pull rate (id estable) |
-| `PackType` | Tipo de sobre/caja; su `packModel` (JSON) define la mecánica por categoría |
-| `Opening` | Registro de apertura de un PackType por un usuario |
-| `OpeningItem` | Cada CollectionItem obtenido en una Opening |
-| `UserInventory` | CollectionItems que posee un usuario, con cantidad y condición |
-| `CollectionRevision` | Versión de una Collection (wiki) — para historial y revert |
-| `Flag` | Reporte de moderación sobre una Collection u otro objeto |
-| `Rarity` | Enum: `COMMON`, `UNCOMMON`, `RARE`, `ULTRA_RARE`, `SECRET`, `LIMITED` |
-| `Pull rate oficial` | Probabilidad publicada por el fabricante — puede ser null |
-| `Pull rate empírico` | Calculado de Opening reales; requiere ≥50 muestras para mostrarse |
-| `Listing` / `ListingOffer` / `Transaction` | _(épica marketplace)_ anuncio / oferta / transacción cerrada |
-| `Reputation Score` | _(épica social)_ media ponderada de reviews como seller y buyer |
+| Concepto                                   | Descripción                                                                 |
+| ------------------------------------------ | --------------------------------------------------------------------------- |
+| `Collection`                               | Un set/línea: "Pokémon Escarlata y Púrpura - Llamas Obsidianas"             |
+| `CollectionItem`                           | Ítem concreto dentro de una Collection, con rareza y pull rate (id estable) |
+| `PackType`                                 | Tipo de sobre/caja; su `packModel` (JSON) define la mecánica por categoría  |
+| `Opening`                                  | Registro de apertura de un PackType por un usuario                          |
+| `OpeningItem`                              | Cada CollectionItem obtenido en una Opening                                 |
+| `UserInventory`                            | CollectionItems que posee un usuario, con cantidad y condición              |
+| `CollectionRevision`                       | Versión de una Collection (wiki) — para historial y revert                  |
+| `Flag`                                     | Reporte de moderación sobre una Collection u otro objeto                    |
+| `Rarity`                                   | Enum: `COMMON`, `UNCOMMON`, `RARE`, `ULTRA_RARE`, `SECRET`, `LIMITED`       |
+| `Pull rate oficial`                        | Probabilidad publicada por el fabricante — puede ser null                   |
+| `Pull rate empírico`                       | Calculado de Opening reales; requiere ≥50 muestras para mostrarse           |
+| `Listing` / `ListingOffer` / `Transaction` | _(épica marketplace)_ anuncio / oferta / transacción cerrada                |
+| `Reputation Score`                         | _(épica social)_ media ponderada de reviews como seller y buyer             |
 
 ### Flujo de apertura _(épica openings)_
 
