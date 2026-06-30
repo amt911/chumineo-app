@@ -5,13 +5,17 @@ import { WishlistList } from './wishlist-list';
 import { useAuthStore } from '@/lib/auth-store';
 import * as api from '@/lib/api';
 import { Rarity, WishlistPriority } from '@sobrebox/shared';
+import { NextIntlClientProvider } from 'next-intl';
+import messages from '@/locales/es.json';
 
 function wrap(ui: React.ReactNode) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
   return render(
-    <QueryClientProvider client={client}>{ui}</QueryClientProvider>,
+    <NextIntlClientProvider locale="es" messages={messages}>
+      <QueryClientProvider client={client}>{ui}</QueryClientProvider>
+    </NextIntlClientProvider>,
   );
 }
 
@@ -37,6 +41,7 @@ describe('WishlistList', () => {
         emailVerified: true,
         avatarUrl: null,
       },
+      status: 'authenticated',
     });
   });
 
@@ -58,8 +63,31 @@ describe('WishlistList', () => {
     await waitFor(() => expect(del).toHaveBeenCalledWith('w1', 'tok'));
   });
 
-  it('shows a login hint when not authenticated', () => {
-    useAuthStore.setState({ accessToken: null, user: null });
+  it('shows the translated empty state', async () => {
+    useAuthStore.setState({
+      accessToken: 'tok',
+      user: null,
+      status: 'authenticated',
+    });
+    vi.spyOn(api, 'fetchWishlist').mockResolvedValue([]);
+    wrap(<WishlistList />);
+    await waitFor(() =>
+      expect(screen.getByText('Tu wishlist está vacía.')).toBeInTheDocument(),
+    );
+  });
+
+  it('does not show the login prompt while auth is loading', () => {
+    useAuthStore.setState({ accessToken: null, user: null, status: 'loading' });
+    wrap(<WishlistList />);
+    expect(screen.queryByText(/inicia sesi[oó]n/i)).not.toBeInTheDocument();
+  });
+
+  it('shows the login prompt only when unauthenticated', () => {
+    useAuthStore.setState({
+      accessToken: null,
+      user: null,
+      status: 'unauthenticated',
+    });
     wrap(<WishlistList />);
     expect(screen.getByText(/inicia sesi[oó]n/i)).toBeInTheDocument();
   });

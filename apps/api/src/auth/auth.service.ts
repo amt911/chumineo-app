@@ -7,6 +7,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import {
+  AUTH_ERROR_CODES,
   AuthResponseDto,
   LoginDto,
   MessageResponseDto,
@@ -138,9 +139,10 @@ export class AuthService {
       user !== null && (await verifyPassword(user.passwordHash, dto.password));
     if (!user || !ok) {
       await this.redis.incrWithTtl(key, AUTH.lockoutWindowMin * 60);
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException(AUTH_ERROR_CODES.INVALID_CREDENTIALS);
     }
-    if (!user.emailVerified) throw new ForbiddenException('EMAIL_NOT_VERIFIED');
+    if (!user.emailVerified)
+      throw new ForbiddenException(AUTH_ERROR_CODES.EMAIL_NOT_VERIFIED);
 
     await this.redis.del(key);
     const days = dto.rememberMe ? AUTH.rememberDays : AUTH.refreshDays;

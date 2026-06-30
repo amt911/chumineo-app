@@ -5,13 +5,17 @@ import { Rarity, WishlistPriority } from '@sobrebox/shared';
 import { CollectionOwnershipPanel } from './collection-ownership-panel';
 import { useAuthStore } from '@/lib/auth-store';
 import * as api from '@/lib/api';
+import { NextIntlClientProvider } from 'next-intl';
+import messages from '@/locales/es.json';
 
 function wrap(ui: React.ReactNode) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
   return render(
-    <QueryClientProvider client={client}>{ui}</QueryClientProvider>,
+    <NextIntlClientProvider locale="es" messages={messages}>
+      <QueryClientProvider client={client}>{ui}</QueryClientProvider>
+    </NextIntlClientProvider>,
   );
 }
 
@@ -38,7 +42,11 @@ const progress = {
 
 describe('CollectionOwnershipPanel', () => {
   beforeEach(() => {
-    useAuthStore.setState({ accessToken: null, user: null });
+    useAuthStore.setState({
+      accessToken: null,
+      user: null,
+      status: 'unauthenticated',
+    });
   });
 
   it('renders nothing when logged out', () => {
@@ -56,6 +64,7 @@ describe('CollectionOwnershipPanel', () => {
         emailVerified: true,
         avatarUrl: null,
       },
+      status: 'authenticated',
     });
     vi.spyOn(api, 'fetchCollectionProgress').mockResolvedValue(progress);
     wrap(<CollectionOwnershipPanel slug="s" />);
@@ -77,6 +86,7 @@ describe('CollectionOwnershipPanel', () => {
         emailVerified: true,
         avatarUrl: null,
       },
+      status: 'authenticated',
     });
     vi.spyOn(api, 'fetchCollectionProgress').mockResolvedValue(progress);
     const add = vi.spyOn(api, 'addInventoryItem').mockResolvedValue({
@@ -107,6 +117,7 @@ describe('CollectionOwnershipPanel', () => {
         emailVerified: true,
         avatarUrl: null,
       },
+      status: 'authenticated',
     });
     vi.spyOn(api, 'fetchCollectionProgress').mockResolvedValue(progress);
     const wish = vi.spyOn(api, 'addWishlistItem').mockResolvedValue({

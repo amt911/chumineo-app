@@ -1,8 +1,9 @@
 'use client';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useTranslations } from 'next-intl';
 import {
   loginSchema,
   type LoginDto,
@@ -10,6 +11,7 @@ import {
 } from '@sobrebox/shared';
 import { loginUser } from '@/lib/api';
 import { useAuthStore } from '@/lib/auth-store';
+import { errorMessageKey, type ErrorMessageKey } from '@/lib/error-messages';
 import {
   Card,
   CardHeader,
@@ -23,12 +25,14 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import Link from 'next/link';
 
 export function LoginForm() {
+  const t = useTranslations();
   const router = useRouter();
   const setSession = useAuthStore((s) => s.setSession);
-  const [serverError, setServerError] = useState<string | null>(null);
+  const [serverErrorKey, setServerErrorKey] = useState<ErrorMessageKey | null>(
+    null,
+  );
   const {
     register,
     handleSubmit,
@@ -40,7 +44,7 @@ export function LoginForm() {
   });
 
   const onSubmit = handleSubmit(async (values) => {
-    setServerError(null);
+    setServerErrorKey(null);
     try {
       // zodResolver applies the Zod default, so rememberMe is always boolean at runtime
       const { accessToken, user } = await loginUser(values as LoginDto);
@@ -48,7 +52,9 @@ export function LoginForm() {
       // Leave the login form on success so the user sees they're in.
       router.push('/collections');
     } catch (err) {
-      setServerError(err instanceof Error ? err.message : 'Login failed');
+      setServerErrorKey(
+        errorMessageKey(err instanceof Error ? err.message : ''),
+      );
     }
   });
 
@@ -112,9 +118,9 @@ export function LoginForm() {
                 </Label>
               </div>
 
-              {serverError && (
+              {serverErrorKey && (
                 <Alert variant="destructive" role="alert">
-                  <AlertDescription>{serverError}</AlertDescription>
+                  <AlertDescription>{t(serverErrorKey)}</AlertDescription>
                 </Alert>
               )}
             </div>

@@ -1,16 +1,20 @@
 'use client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { deleteWishlistItem, fetchWishlist } from '@/lib/api';
 import { useAuthStore } from '@/lib/auth-store';
 
 export function WishlistList() {
+  const t = useTranslations('Wishlist');
+  const tc = useTranslations('Common');
+  const status = useAuthStore((s) => s.status);
   const accessToken = useAuthStore((s) => s.accessToken);
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
     queryKey: ['wishlist'],
     queryFn: () => fetchWishlist(accessToken as string),
-    enabled: !!accessToken,
+    enabled: status === 'authenticated',
   });
 
   const remove = useMutation({
@@ -18,10 +22,11 @@ export function WishlistList() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['wishlist'] }),
   });
 
-  if (!accessToken) return <p>Inicia sesión para ver tu wishlist.</p>;
-  if (isLoading) return <p>Cargando…</p>;
+  if (status === 'loading') return <p>{tc('loading')}</p>;
+  if (status === 'unauthenticated') return <p>{t('loginPrompt')}</p>;
+  if (isLoading) return <p>{tc('loading')}</p>;
   if (!data || data.length === 0) {
-    return <p className="text-muted-foreground">Tu wishlist está vacía.</p>;
+    return <p className="text-muted-foreground">{t('empty')}</p>;
   }
 
   return (
@@ -35,7 +40,7 @@ export function WishlistList() {
             <span className="font-medium">{w.item.name}</span>{' '}
             <span className="text-xs text-muted-foreground">
               {w.priority}
-              {w.maxPrice ? ` · máx ${w.maxPrice}€` : ''}
+              {w.maxPrice ? ` · ${t('maxPrice', { price: w.maxPrice })}` : ''}
             </span>
           </span>
           <button
@@ -43,7 +48,7 @@ export function WishlistList() {
             className="rounded border px-2 py-1 text-xs"
             onClick={() => remove.mutate(w.id)}
           >
-            Quitar
+            {t('remove')}
           </button>
         </li>
       ))}

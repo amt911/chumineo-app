@@ -1,5 +1,6 @@
 import type { NextConfig } from 'next';
 import path from 'node:path';
+import createNextIntlPlugin from 'next-intl/plugin';
 
 // Comma-separated hostnames/IPs allowed to reach the Turbopack dev server from a
 // different origin (Next 15.2+ refuses the cross-origin HMR websocket otherwise).
@@ -30,4 +31,5 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
+export default withNextIntl(nextConfig);

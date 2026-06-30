@@ -1,0 +1,36 @@
+{
+  "Common": { "loading": "Cargando…" },
+  "Nav": {
+    "login": "Entrar",
+    "register": "Crear cuenta",
+    "logout": "Salir",
+    "collections": "Colecciones",
+    "inventory": "Inventario",
+    "wishlist": "Wishlist"
+  },
+  "Inventory": {
+    "title": "Mi inventario",
+    "loginPrompt": "Inicia sesión para ver tu inventario.",
+    "empty": "Todavía no tienes ítems. Marca lo que tienes desde una colección.",
+    "progress": "{owned} / {total} · {percent}%"
+  },
+  "Wishlist": {
+    "title": "Mi wishlist",
+    "loginPrompt": "Inicia sesión para ver tu wishlist.",
+    "empty": "Tu wishlist está vacía.",
+    "remove": "Quitar",
+    "maxPrice": "máx {price}€"
+  },
+  "Collections": {
+    "progressTitle": "Tu progreso",
+    "have": "Tengo {name}",
+    "addOne": "+1 {name}",
+    "missing": "(te falta)",
+    "wishlist": "Wishlist"
+  },
+  "Errors": {
+    "EMAIL_NOT_VERIFIED": "Verifica tu correo antes de iniciar sesión.",
+    "INVALID_CREDENTIALS": "Email o contraseña incorrectos.",
+    "UNKNOWN": "Algo salió mal. Inténtalo de nuevo."
+  }
+}

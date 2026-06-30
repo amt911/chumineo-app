@@ -1,7 +1,23 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { CollectionCard } from './collection-card';
 import type { CollectionListItemDto } from '@sobrebox/shared';
+
+vi.mock('@/i18n/navigation', () => ({
+  Link: ({
+    href,
+    children,
+    className,
+  }: {
+    href: string;
+    children: React.ReactNode;
+    className?: string;
+  }) => (
+    <a href={href} className={className}>
+      {children}
+    </a>
+  ),
+}));
 
 const item: CollectionListItemDto = {
   id: '1',
