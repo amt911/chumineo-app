@@ -268,8 +268,16 @@ import {
   deleteInventoryItem,
   fetchWishlist,
   refreshSession,
+  createListing,
+  updateListing,
+  deleteListing,
+  fetchMyListings,
+  uploadListingPhotos,
+  deleteListingPhoto,
+  updateProfile,
 } from './api';
 import { useAuthStore } from './auth-store';
+import { Condition, ListingStatus, Rarity } from '@sobrebox/shared';
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -354,5 +362,174 @@ describe('refreshSession + 401 retry', () => {
     expect(data).toEqual([]);
     expect(useAuthStore.getState().accessToken).toBe('new');
     expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+});
+
+function makeListingPayload(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'l1',
+    quantity: 1,
+    condition: Condition.MINT,
+    price: '19.99',
+    description: null,
+    status: ListingStatus.ACTIVE,
+    createdAt: '2026-07-01T00:00:00.000Z',
+    item: {
+      id: 'ci1',
+      name: 'Charizard',
+      rarity: Rarity.SECRET,
+      imageUrl: null,
+    },
+    collection: { slug: 's', name: 'N' },
+    seller: { username: 'ash', country: 'ES', avatarUrl: null },
+    photos: [],
+    ...overrides,
+  };
+}
+
+describe('marketplace api wrappers', () => {
+  beforeEach(() => {
+    useAuthStore.setState({
+      accessToken: 'tok',
+      user: null,
+      status: 'authenticated',
+    });
+  });
+
+  it('createListing posts the dto and returns the parsed listing', async () => {
+    const spy = mockFetch(201, makeListingPayload());
+    const dto = {
+      collectionItemId: 'ci1',
+      quantity: 1,
+      condition: Condition.MINT,
+      price: '19.99',
+    };
+    const result = await createListing(dto, 'tok');
+    expect(result.id).toBe('l1');
+    expect(spy).toHaveBeenCalledWith(
+      expect.stringContaining('/marketplace/listings'),
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({ Authorization: 'Bearer tok' }),
+        body: JSON.stringify(dto),
+      }),
+    );
+  });
+
+  it('updateListing patches the listing and returns the parsed result', async () => {
+    const spy = mockFetch(
+      200,
+      makeListingPayload({ status: ListingStatus.PAUSED }),
+    );
+    const result = await updateListing(
+      'l1',
+      { status: ListingStatus.PAUSED },
+      'tok',
+    );
+    expect(result.status).toBe(ListingStatus.PAUSED);
+    expect(spy).toHaveBeenCalledWith(
+      expect.stringContaining('/marketplace/listings/l1'),
+      expect.objectContaining({
+        method: 'PATCH',
+        headers: expect.objectContaining({ Authorization: 'Bearer tok' }),
+        body: JSON.stringify({ status: ListingStatus.PAUSED }),
+      }),
+    );
+  });
+
+  it('deleteListing sends a DELETE and tolerates a 204', async () => {
+    const spy = mockFetch(204, null);
+    await expect(deleteListing('l1', 'tok')).resolves.toBeUndefined();
+    expect(spy).toHaveBeenCalledWith(
+      expect.stringContaining('/marketplace/listings/l1'),
+      expect.objectContaining({ method: 'DELETE' }),
+    );
+  });
+
+  it('fetchMyListings validates and returns the listings page', async () => {
+    mockFetch(200, {
+      items: [makeListingPayload()],
+      page: 1,
+      total: 1,
+      totalPages: 1,
+    });
+    const page = await fetchMyListings('tok');
+    expect(page.items).toHaveLength(1);
+    expect(page.items[0].id).toBe('l1');
+  });
+
+  it('deleteListingPhoto sends a DELETE to the photo endpoint', async () => {
+    const spy = mockFetch(204, null);
+    await expect(
+      deleteListingPhoto('l1', 'p1', 'tok'),
+    ).resolves.toBeUndefined();
+    expect(spy).toHaveBeenCalledWith(
+      expect.stringContaining('/marketplace/listings/l1/photos/p1'),
+      expect.objectContaining({ method: 'DELETE' }),
+    );
+  });
+
+  it('uploadListingPhotos sends a multipart FormData body with the bearer token', async () => {
+    const spy = vi.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => [{ id: 'p1', url: 'https://cdn.example.com/p1.jpg' }],
+    } as Response);
+
+    const file = new File(['fake-bytes'], 'photo.jpg', { type: 'image/jpeg' });
+    const result = await uploadListingPhotos('l1', [file], 'tok');
+
+    expect(result).toEqual([
+      { id: 'p1', url: 'https://cdn.example.com/p1.jpg' },
+    ]);
+    expect(spy).toHaveBeenCalledTimes(1);
+    const [url, init] = spy.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain('/marketplace/listings/l1/photos');
+    expect(init.method).toBe('POST');
+    expect(init.body).toBeInstanceOf(FormData);
+    expect((init.body as FormData).getAll('files')).toEqual([file]);
+    expect(init.headers).toMatchObject({ Authorization: 'Bearer tok' });
+  });
+
+  it('uploadListingPhotos throws on non-ok', async () => {
+    vi.spyOn(global, 'fetch').mockResolvedValue({
+      ok: false,
+      status: 413,
+    } as Response);
+    const file = new File(['x'], 'a.jpg', { type: 'image/jpeg' });
+    await expect(uploadListingPhotos('l1', [file], 'tok')).rejects.toThrow(
+      /413/,
+    );
+  });
+});
+
+describe('updateProfile', () => {
+  beforeEach(() => {
+    useAuthStore.setState({
+      accessToken: 'tok',
+      user: null,
+      status: 'authenticated',
+    });
+  });
+
+  it('patches the profile and returns the parsed user', async () => {
+    const spy = mockFetch(200, {
+      id: 'u1',
+      email: 'a@b.com',
+      username: 'ash',
+      emailVerified: true,
+      avatarUrl: null,
+      country: 'ES',
+    });
+    const result = await updateProfile({ country: 'ES' }, 'tok');
+    expect(result.country).toBe('ES');
+    expect(spy).toHaveBeenCalledWith(
+      expect.stringContaining('/users/me'),
+      expect.objectContaining({
+        method: 'PATCH',
+        headers: expect.objectContaining({ Authorization: 'Bearer tok' }),
+        body: JSON.stringify({ country: 'ES' }),
+      }),
+    );
   });
 });
