@@ -37,7 +37,8 @@
     "toastWishAdded": "{name} añadido a tu wishlist",
     "toastWishRemoved": "{name} quitado de tu wishlist",
     "toastError": "Algo salió mal. Inténtalo de nuevo.",
-    "complete": "¡Colección completa!"
+    "complete": "¡Colección completa!",
+    "sell": "Vender"
   },
   "Marketplace": {
     "title": "Mercado",
@@ -46,7 +47,14 @@
     "sortPriceAsc": "Precio: menor a mayor",
     "sortPriceDesc": "Precio: mayor a menor",
     "sortBestRated": "Mejor valorado (próximamente)",
-    "offerSoon": "Ofertas próximamente"
+    "offerSoon": "Ofertas próximamente",
+    "createTitle": "Vender un ítem",
+    "quantity": "Cantidad",
+    "condition": "Condición",
+    "price": "Precio",
+    "description": "Descripción",
+    "submit": "Publicar anuncio",
+    "toastCreated": "Anuncio publicado"
   },
   "Errors": {
     "EMAIL_NOT_VERIFIED": "Verifica tu correo antes de iniciar sesión.",

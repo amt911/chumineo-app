@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { AnimatePresence, motion } from 'motion/react';
 import { toast } from 'sonner';
 import { Check, Heart, Plus, Trophy, X } from 'lucide-react';
+import { Link } from '@/i18n/navigation';
 import {
   addInventoryItem,
   addWishlistItem,
@@ -220,6 +221,12 @@ export function CollectionOwnershipPanel({ slug }: { slug: string }) {
                         >
                           <X /> {t('owned')}
                         </Button>
+                        <Link
+                          href={`/marketplace/new?itemId=${it.collectionItemId}`}
+                          className="text-sm text-primary hover:underline"
+                        >
+                          {t('sell')}
+                        </Link>
                       </>
                     ) : (
                       <>
