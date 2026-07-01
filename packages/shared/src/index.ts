@@ -18,4 +18,5 @@ export * from './dto/brand.dto';
 export * from './pack-models/summary';
 export * from './dto/inventory.dto';
 export * from './dto/wishlist.dto';
+export * from './dto/marketplace.dto';
 export * from './errors/auth-error-codes';
