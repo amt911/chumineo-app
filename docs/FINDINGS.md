@@ -12,6 +12,7 @@
 - `api` y `shared` son **CommonJS, sin extensiones `.js`** en imports. `web` usa resolución Bundler de Next + `transpilePackages: ['@sobrebox/shared']`.
 - El seed corre con **`tsx`** (no ts-node) para poder importar `@sobrebox/shared`.
 - **`uuid` v12+ es ESM-only** (`"type": "module"`, sin build CJS) → rompe Jest en `apps/api` (CommonJS) con `SyntaxError: Unexpected token 'export'` al importar `uuid/dist-node/index.js`. Usa **`uuid@^11`**, que sigue publicando `exports.node.require` → `dist/cjs/index.js` con sus propios `.d.ts` (no hace falta `@types/uuid`, que además está deprecado desde que uuid trae tipos propios).
+- **ESLint 9 flat config resuelve un único `eslint.config.mjs`** desde `cwd` (no hace cascada por directorio como `.eslintrc`). `lint-staged` desde la raíz usa siempre el config raíz, aunque el archivo esté en `apps/web`/`apps/api` (cada uno con su propio config Next/Nest-aware) → rompe con reglas como `@next/next/no-img-element` ("Definition for rule ... was not found"). Fix: cada paquete con su propio flat config necesita su propio bloque `lint-staged` en su `package.json`, así lint-staged lo corre con `cwd` dentro de ese paquete y resuelve el config correcto.
 
 ## Prisma
 
