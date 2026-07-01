@@ -4,6 +4,7 @@ export * from './enums/collection-source';
 export * from './enums/collection-status';
 export * from './enums/condition';
 export * from './enums/wishlist-priority';
+export * from './enums/listing-status';
 export * from './pack-models/tcg.schema';
 export * from './pack-models/blind-box.schema';
 export * from './pack-models/figure.schema';
