@@ -32,4 +32,37 @@ describe('ListingsController', () => {
     controller.get(undefined, 'listing1');
     expect(service.getById).toHaveBeenCalledWith('listing1', undefined);
   });
+
+  it('POST forwards the current user id + dto to create', () => {
+    const dto = {
+      collectionItemId: 'ci1',
+      quantity: 1,
+      condition: 'MINT',
+      price: '19.99',
+    };
+    controller.create(user, dto as never);
+    expect(service.create).toHaveBeenCalledWith('u1', dto);
+  });
+
+  it('GET forwards the query to listPublic (anonymous public browse)', () => {
+    const query = { page: 1 };
+    controller.list(query as never);
+    expect(service.listPublic).toHaveBeenCalledWith(query);
+  });
+
+  it('GET /mine forwards the current user id as owner filter', () => {
+    controller.listMine(user);
+    expect(service.listPublic).toHaveBeenCalledWith({ page: 1 }, 'u1');
+  });
+
+  it('PATCH forwards the current user id, id and dto to update', () => {
+    const dto = { price: '9.99' };
+    controller.update(user, 'listing1', dto as never);
+    expect(service.update).toHaveBeenCalledWith('u1', 'listing1', dto);
+  });
+
+  it('DELETE forwards the current user id and id to remove', () => {
+    controller.remove(user, 'listing1');
+    expect(service.remove).toHaveBeenCalledWith('u1', 'listing1');
+  });
 });

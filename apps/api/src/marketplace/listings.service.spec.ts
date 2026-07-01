@@ -163,4 +163,366 @@ describe('ListingsService.listPublic with ownerId', () => {
       expect.objectContaining({ where: { sellerId: 'u1' } }),
     );
   });
+
+  it('ignores the country filter when scoped to an owner (mine view)', async () => {
+    const prisma = makePrisma();
+    prisma.listing.findMany.mockResolvedValue([]);
+    prisma.listing.count.mockResolvedValue(0);
+    const service = new ListingsService(
+      prisma as never,
+      makeStorage() as never,
+    );
+    await service.listPublic({ page: 1, country: 'ES' } as never, 'u1');
+    expect(prisma.listing.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { sellerId: 'u1' } }),
+    );
+  });
+});
+
+describe('ListingsService.listPublic filter permutations (anonymous/public)', () => {
+  function setup() {
+    const prisma = makePrisma();
+    prisma.listing.findMany.mockResolvedValue([]);
+    prisma.listing.count.mockResolvedValue(0);
+    const service = new ListingsService(
+      prisma as never,
+      makeStorage() as never,
+    );
+    return { prisma, service };
+  }
+
+  it('defaults to ACTIVE-only and recency sort when no filters are set', async () => {
+    const { prisma, service } = setup();
+    await service.listPublic({ page: 1 } as never);
+    expect(prisma.listing.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { status: ListingStatus.ACTIVE },
+        orderBy: { createdAt: 'desc' },
+      }),
+    );
+  });
+
+  it('sorts by price ascending when requested', async () => {
+    const { prisma, service } = setup();
+    await service.listPublic({ page: 1, sort: 'price_asc' } as never);
+    expect(prisma.listing.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: { price: 'asc' } }),
+    );
+  });
+
+  it('sorts by price descending when requested', async () => {
+    const { prisma, service } = setup();
+    await service.listPublic({ page: 1, sort: 'price_desc' } as never);
+    expect(prisma.listing.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: { price: 'desc' } }),
+    );
+  });
+
+  it('falls back to recency for best_rated (no-op sort)', async () => {
+    const { prisma, service } = setup();
+    await service.listPublic({ page: 1, sort: 'best_rated' } as never);
+    expect(prisma.listing.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: { createdAt: 'desc' } }),
+    );
+  });
+
+  it('filters by collectionItemId when present', async () => {
+    const { prisma, service } = setup();
+    await service.listPublic({ page: 1, collectionItemId: 'ci1' } as never);
+    expect(prisma.listing.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ collectionItemId: 'ci1' }),
+      }),
+    );
+  });
+
+  it('filters by collectionId when present', async () => {
+    const { prisma, service } = setup();
+    await service.listPublic({ page: 1, collectionId: 'c1' } as never);
+    expect(prisma.listing.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          collectionItem: { collectionId: 'c1' },
+        }),
+      }),
+    );
+  });
+
+  it('filters by condition when present', async () => {
+    const { prisma, service } = setup();
+    await service.listPublic({ page: 1, condition: Condition.MINT } as never);
+    expect(prisma.listing.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ condition: Condition.MINT }),
+      }),
+    );
+  });
+
+  it('filters by country when present and anonymous (public browse)', async () => {
+    const { prisma, service } = setup();
+    await service.listPublic({ page: 1, country: 'US' } as never);
+    expect(prisma.listing.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ seller: { country: 'US' } }),
+      }),
+    );
+  });
+
+  it('filters by free-text query q when present', async () => {
+    const { prisma, service } = setup();
+    await service.listPublic({ page: 1, q: 'char' } as never);
+    expect(prisma.listing.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          collectionItem: {
+            name: { contains: 'char', mode: 'insensitive' },
+          },
+        }),
+      }),
+    );
+  });
+
+  it('filters by priceMin only', async () => {
+    const { prisma, service } = setup();
+    await service.listPublic({ page: 1, priceMin: '5.00' } as never);
+    expect(prisma.listing.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ price: { gte: '5.00' } }),
+      }),
+    );
+  });
+
+  it('filters by priceMax only', async () => {
+    const { prisma, service } = setup();
+    await service.listPublic({ page: 1, priceMax: '20.00' } as never);
+    expect(prisma.listing.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ price: { lte: '20.00' } }),
+      }),
+    );
+  });
+
+  it('filters by both priceMin and priceMax when present', async () => {
+    const { prisma, service } = setup();
+    await service.listPublic({
+      page: 1,
+      priceMin: '5.00',
+      priceMax: '20.00',
+    } as never);
+    expect(prisma.listing.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          price: { gte: '5.00', lte: '20.00' },
+        }),
+      }),
+    );
+  });
+
+  it('paginates using (page - 1) * PAGE_SIZE as skip', async () => {
+    const { prisma, service } = setup();
+    await service.listPublic({ page: 3 } as never);
+    expect(prisma.listing.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ skip: 48, take: 24 }),
+    );
+  });
+
+  it('computes totalPages from total count, at least 1', async () => {
+    const prisma = makePrisma();
+    prisma.listing.findMany.mockResolvedValue([]);
+    prisma.listing.count.mockResolvedValue(0);
+    const service = new ListingsService(
+      prisma as never,
+      makeStorage() as never,
+    );
+    const page = await service.listPublic({ page: 1 } as never);
+    expect(page.totalPages).toBe(1);
+  });
+
+  it('computes totalPages > 1 when total exceeds a single page', async () => {
+    const prisma = makePrisma();
+    prisma.listing.findMany.mockResolvedValue([]);
+    prisma.listing.count.mockResolvedValue(50);
+    const service = new ListingsService(
+      prisma as never,
+      makeStorage() as never,
+    );
+    const page = await service.listPublic({ page: 1 } as never);
+    expect(page.totalPages).toBe(3);
+  });
+});
+
+describe('ListingsService.getById', () => {
+  it('404s when the listing does not exist', async () => {
+    const prisma = makePrisma();
+    prisma.listing.findUnique.mockResolvedValue(null);
+    const service = new ListingsService(
+      prisma as never,
+      makeStorage() as never,
+    );
+    await expect(service.getById('missing')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+  });
+
+  it('404s a non-active listing to a non-owner requester', async () => {
+    const prisma = makePrisma();
+    prisma.listing.findUnique.mockResolvedValue(
+      row({ status: ListingStatus.PAUSED, sellerId: 'u1' }),
+    );
+    const service = new ListingsService(
+      prisma as never,
+      makeStorage() as never,
+    );
+    await expect(service.getById('l1', 'someone-else')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+  });
+
+  it('404s a non-active listing to an anonymous requester', async () => {
+    const prisma = makePrisma();
+    prisma.listing.findUnique.mockResolvedValue(
+      row({ status: ListingStatus.SOLD_OUT, sellerId: 'u1' }),
+    );
+    const service = new ListingsService(
+      prisma as never,
+      makeStorage() as never,
+    );
+    await expect(service.getById('l1')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+  });
+
+  it('returns a non-active listing to its owner (preview)', async () => {
+    const prisma = makePrisma();
+    prisma.listing.findUnique.mockResolvedValue(
+      row({ status: ListingStatus.PAUSED, sellerId: 'u1' }),
+    );
+    const service = new ListingsService(
+      prisma as never,
+      makeStorage() as never,
+    );
+    const dto = await service.getById('l1', 'u1');
+    expect(dto.status).toBe(ListingStatus.PAUSED);
+  });
+
+  it('returns an active listing to anyone', async () => {
+    const prisma = makePrisma();
+    prisma.listing.findUnique.mockResolvedValue(row());
+    const service = new ListingsService(
+      prisma as never,
+      makeStorage() as never,
+    );
+    const dto = await service.getById('l1');
+    expect(dto.id).toBe('l1');
+  });
+});
+
+describe('ListingsService.update additional branches', () => {
+  it('updates without touching quantity when quantity is not provided', async () => {
+    const prisma = makePrisma();
+    prisma.listing.findFirst.mockResolvedValue(
+      row({ sellerId: 'u1', quantity: 1 }),
+    );
+    prisma.listing.update.mockResolvedValue(row({ description: 'updated' }));
+    const service = new ListingsService(
+      prisma as never,
+      makeStorage() as never,
+    );
+    const dto = await service.update('u1', 'l1', { description: 'updated' });
+    expect(dto.description).toBe('updated');
+    expect(prisma.userInventory.findFirst).not.toHaveBeenCalled();
+    expect(prisma.listing.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { description: 'updated' },
+      }),
+    );
+  });
+
+  it('updates quantity, price, description and status together when all are provided', async () => {
+    const prisma = makePrisma();
+    prisma.listing.findFirst.mockResolvedValue(
+      row({ sellerId: 'u1', quantity: 1 }),
+    );
+    prisma.userInventory.findFirst.mockResolvedValue({ quantity: 5 });
+    prisma.listing.aggregate.mockResolvedValue({ _sum: { quantity: 1 } });
+    prisma.listing.update.mockResolvedValue(row({ quantity: 2 }));
+    const service = new ListingsService(
+      prisma as never,
+      makeStorage() as never,
+    );
+    await service.update('u1', 'l1', {
+      quantity: 2,
+      price: '9.99',
+      description: 'new desc',
+      status: ListingStatus.PAUSED,
+    });
+    expect(prisma.listing.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: {
+          quantity: 2,
+          price: '9.99',
+          description: 'new desc',
+          status: ListingStatus.PAUSED,
+        },
+      }),
+    );
+  });
+});
+
+describe('ListingsService.remove full flow', () => {
+  it('deletes storage photos and the listing when it has photos', async () => {
+    const prisma = makePrisma();
+    prisma.listing.findFirst.mockResolvedValue(
+      row({ sellerId: 'u1', id: 'l1' }),
+    );
+    prisma.listing.findUnique.mockResolvedValue({
+      photos: [
+        { id: 'p1', key: 'k1' },
+        { id: 'p2', key: 'k2' },
+      ],
+    });
+    prisma.listing.delete.mockResolvedValue(row());
+    const storage = {
+      ...makeStorage(),
+      delete: jest.fn().mockResolvedValue(undefined),
+    };
+    const service = new ListingsService(prisma as never, storage as never);
+    await service.remove('u1', 'l1');
+    expect(storage.delete).toHaveBeenCalledTimes(2);
+    expect(storage.delete).toHaveBeenCalledWith('k1');
+    expect(storage.delete).toHaveBeenCalledWith('k2');
+    expect(prisma.listing.delete).toHaveBeenCalledWith({ where: { id: 'l1' } });
+  });
+
+  it('deletes the listing with no storage calls when it has no photos', async () => {
+    const prisma = makePrisma();
+    prisma.listing.findFirst.mockResolvedValue(
+      row({ sellerId: 'u1', id: 'l1' }),
+    );
+    prisma.listing.findUnique.mockResolvedValue({ photos: [] });
+    prisma.listing.delete.mockResolvedValue(row());
+    const storage = {
+      ...makeStorage(),
+      delete: jest.fn().mockResolvedValue(undefined),
+    };
+    const service = new ListingsService(prisma as never, storage as never);
+    await service.remove('u1', 'l1');
+    expect(storage.delete).not.toHaveBeenCalled();
+  });
+
+  it('treats a missing findUnique result as having no photos', async () => {
+    const prisma = makePrisma();
+    prisma.listing.findFirst.mockResolvedValue(
+      row({ sellerId: 'u1', id: 'l1' }),
+    );
+    prisma.listing.findUnique.mockResolvedValue(null);
+    prisma.listing.delete.mockResolvedValue(row());
+    const storage = {
+      ...makeStorage(),
+      delete: jest.fn().mockResolvedValue(undefined),
+    };
+    const service = new ListingsService(prisma as never, storage as never);
+    await service.remove('u1', 'l1');
+    expect(storage.delete).not.toHaveBeenCalled();
+  });
 });

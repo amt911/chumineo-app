@@ -96,6 +96,55 @@ describe('ListingPhotosService.add', () => {
   });
 });
 
+describe('ListingPhotosService.add error cleanup', () => {
+  it('deletes the just-uploaded object and rethrows when the DB insert fails', async () => {
+    const prisma = makePrisma();
+    prisma.listingPhoto.count.mockResolvedValue(0);
+    const dbError = new Error('unique constraint violation');
+    prisma.listingPhoto.create.mockRejectedValue(dbError);
+    const listingsService = makeListingsService();
+    listingsService.assertOwned.mockResolvedValue({ id: 'l1' });
+    const storage = makeStorage();
+    const service = new ListingPhotosService(
+      prisma as never,
+      listingsService as never,
+      makeCompressor() as never,
+      storage as never,
+    );
+    await expect(
+      service.add('u1', 'l1', [
+        { buffer: Buffer.from('x'), mimetype: 'image/png' } as never,
+      ]),
+    ).rejects.toBe(dbError);
+    expect(storage.delete).toHaveBeenCalledTimes(1);
+    expect(storage.delete).toHaveBeenCalledWith(
+      expect.stringMatching(/^marketplace-listings\/l1\/.+\.webp$/),
+    );
+  });
+
+  it('swallows a failure to delete the orphaned object and still rethrows the original error', async () => {
+    const prisma = makePrisma();
+    prisma.listingPhoto.count.mockResolvedValue(0);
+    const dbError = new Error('unique constraint violation');
+    prisma.listingPhoto.create.mockRejectedValue(dbError);
+    const listingsService = makeListingsService();
+    listingsService.assertOwned.mockResolvedValue({ id: 'l1' });
+    const storage = makeStorage();
+    storage.delete.mockRejectedValue(new Error('storage unreachable'));
+    const service = new ListingPhotosService(
+      prisma as never,
+      listingsService as never,
+      makeCompressor() as never,
+      storage as never,
+    );
+    await expect(
+      service.add('u1', 'l1', [
+        { buffer: Buffer.from('x'), mimetype: 'image/png' } as never,
+      ]),
+    ).rejects.toBe(dbError);
+  });
+});
+
 describe('ListingPhotosService.remove', () => {
   it('403s when the listing is not owned by the user', async () => {
     const listingsService = makeListingsService();
@@ -109,5 +158,46 @@ describe('ListingPhotosService.remove', () => {
     await expect(service.remove('u2', 'l1', 'p1')).rejects.toBeInstanceOf(
       ForbiddenException,
     );
+  });
+
+  it('is a no-op when the photo does not exist (or belongs to another listing)', async () => {
+    const prisma = makePrisma();
+    prisma.listingPhoto.findFirst.mockResolvedValue(null);
+    const listingsService = makeListingsService();
+    listingsService.assertOwned.mockResolvedValue({ id: 'l1' });
+    const storage = makeStorage();
+    const service = new ListingPhotosService(
+      prisma as never,
+      listingsService as never,
+      makeCompressor() as never,
+      storage as never,
+    );
+    await service.remove('u1', 'l1', 'missing');
+    expect(storage.delete).not.toHaveBeenCalled();
+    expect(prisma.listingPhoto.delete).not.toHaveBeenCalled();
+  });
+
+  it('deletes the storage object and the DB row when the photo exists', async () => {
+    const prisma = makePrisma();
+    prisma.listingPhoto.findFirst.mockResolvedValue({
+      id: 'p1',
+      key: 'marketplace-listings/l1/a.webp',
+    });
+    const listingsService = makeListingsService();
+    listingsService.assertOwned.mockResolvedValue({ id: 'l1' });
+    const storage = makeStorage();
+    const service = new ListingPhotosService(
+      prisma as never,
+      listingsService as never,
+      makeCompressor() as never,
+      storage as never,
+    );
+    await service.remove('u1', 'l1', 'p1');
+    expect(storage.delete).toHaveBeenCalledWith(
+      'marketplace-listings/l1/a.webp',
+    );
+    expect(prisma.listingPhoto.delete).toHaveBeenCalledWith({
+      where: { id: 'p1' },
+    });
   });
 });

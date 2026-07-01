@@ -114,6 +114,18 @@
   (El mismo gotcha del volumen anónimo afecta al cliente Prisma generado — regenéralo dentro
   del contenedor.)
 
+## Marketplace / storage
+
+- **Coverage exclusions (`apps/api/package.json` → `jest.coveragePathIgnorePatterns`) para
+  bootstrap/infra puro**, análogas a `main.ts`/`*.module.ts`/`prisma.service.ts`:
+  `storage/s3-client.provider.ts` (DI factory que solo lee env vars y construye un `S3Client`,
+  sin ramas de negocio), `storage/s3-bucket-initializer.ts` (`OnModuleInit` que crea/verifica
+  el bucket de RustFS al arrancar — ya cubierto end-to-end por el round-trip real de RustFS en
+  `test:e2e`, Task 7), y `marketplace/multer-image.options.ts` (objeto de configuración de
+  multer/`FileInterceptor`, sin lógica testeable de forma útil en aislamiento). Ninguno de los
+  tres contiene lógica de dominio; los services/controllers de marketplace, storage e image NO
+  están excluidos y se cubren con tests reales (branch coverage).
+
 ## Pendiente (Playwright)
 
 - Playwright (e2e de frontend) está **declarado pero diferido a la épica 3** (animación de apertura). Aún no hay script de frontend-e2e.

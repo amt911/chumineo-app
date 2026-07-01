@@ -111,7 +111,10 @@
       ".module.ts$",
       "main.ts$",
       "prisma/prisma.service.ts",
-      "/prisma/seed.ts"
+      "/prisma/seed.ts",
+      "storage/s3-client.provider.ts$",
+      "storage/s3-bucket-initializer.ts$",
+      "marketplace/multer-image.options.ts$"
     ]
   }
 }
