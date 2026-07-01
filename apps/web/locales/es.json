@@ -5,8 +5,10 @@
     "register": "Crear cuenta",
     "logout": "Salir",
     "collections": "Colecciones",
+    "marketplace": "Mercado",
     "inventory": "Inventario",
-    "wishlist": "Wishlist"
+    "wishlist": "Wishlist",
+    "myListings": "Mis anuncios"
   },
   "Inventory": {
     "title": "Mi inventario",

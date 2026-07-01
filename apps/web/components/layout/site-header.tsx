@@ -39,6 +39,9 @@ export function SiteHeader() {
             <Link href="/collections" className="hover:text-foreground">
               {t('collections')}
             </Link>
+            <Link href="/marketplace" className="hover:text-foreground">
+              {t('marketplace')}
+            </Link>
             {status === 'authenticated' && (
               <>
                 <Link href="/inventory" className="hover:text-foreground">
@@ -46,6 +49,12 @@ export function SiteHeader() {
                 </Link>
                 <Link href="/wishlist" className="hover:text-foreground">
                   {t('wishlist')}
+                </Link>
+                <Link
+                  href="/marketplace/mine"
+                  className="hover:text-foreground"
+                >
+                  {t('myListings')}
                 </Link>
               </>
             )}

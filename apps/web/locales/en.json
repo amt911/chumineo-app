@@ -5,8 +5,10 @@
     "register": "Sign up",
     "logout": "Log out",
     "collections": "Collections",
+    "marketplace": "Marketplace",
     "inventory": "Inventory",
-    "wishlist": "Wishlist"
+    "wishlist": "Wishlist",
+    "myListings": "My listings"
   },
   "Inventory": {
     "title": "My inventory",
