@@ -113,6 +113,17 @@
   `docker compose up -d --build --renew-anon-volumes --force-recreate sobrebox-api sobrebox-web`.
   (El mismo gotcha del volumen anónimo afecta al cliente Prisma generado — regenéralo dentro
   del contenedor.)
+- **Docker dev + Next "compilando eternamente":** el dev container `sobrebox-web`
+  bind-montea `.:/app`, así que `apps/web/.next` (caché de Turbopack) quedaba **compartido
+  con el host**. Si el host tiene un `.next` de otra corrida (`next dev`/`next build`, distinto
+  contenido/versión), el Turbopack del contenedor reconcilia esa caché ajena durante 30s+ por
+  ruta (parece que se cuelga; medido: `/marketplace/mine` 29.9s con `.next` sucio → 0.68s
+  limpio). Fix: (1) volumen anónimo `- /app/apps/web/.next` en compose para aislar el `.next`
+  del contenedor del host (mismo patrón que `node_modules`); (2) `RUN rm -rf .next` en el stage
+  `dev` del Dockerfile para que el volumen anónimo se siembre **vacío** (si no, se sembraría con
+  el `next build` de prod del stage `build`). No se puede `rm` en el `CMD` en runtime: el dir es
+  el mountpoint del volumen → `Resource busy`; por eso se borra en build time. La caché dev
+  persiste entre reinicios (mismo volumen anónimo).
 
 ## Marketplace / storage
 

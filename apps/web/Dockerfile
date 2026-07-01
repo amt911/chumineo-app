@@ -34,5 +34,11 @@ CMD ["node", "apps/web/server.js"]
 # ---- dev: hot reload (source bind-mounted by compose) ----
 FROM build AS dev
 WORKDIR /app/apps/web
+# Drop the prod `next build` output inherited from the build stage so the `.next`
+# anon volume (compose) seeds EMPTY. Dev Turbopack then owns a clean cache that
+# persists across restarts and never reconciles stale prod/host artifacts (which
+# stalls compilation for 30s+). Done at build time — the runtime dir is a mount
+# point, so it can't be removed while the container runs.
+RUN rm -rf .next
 EXPOSE 3000
 CMD ["pnpm", "--filter", "@sobrebox/web", "dev"]

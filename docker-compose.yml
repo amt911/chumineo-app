@@ -102,6 +102,11 @@ services:
       - /app/node_modules
       - /app/apps/web/node_modules
       - /app/packages/shared/node_modules
+      # Isolate Next's build/cache dir from the host bind mount. Sharing it with
+      # a host `next dev`/`next build` leaves stale/foreign Turbopack cache that
+      # the container's dev server reconciles for 30s+ ("compiling forever").
+      # Same reasoning as the node_modules anon volumes above.
+      - /app/apps/web/.next
 
 volumes:
   sobrebox_db_data:
