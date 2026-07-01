@@ -1,0 +1,65 @@
+[
+  {
+    "slug": "sv-obsidian-flames",
+    "name": "Scarlet & Violet — Obsidian Flames",
+    "brandSlug": "pokemon",
+    "category": "TCG",
+    "status": "PUBLISHED",
+    "source": "API_IMPORT",
+    "releaseYear": 2023,
+    "items": [
+      { "name": "Charizard ex", "rarity": "ULTRA_RARE" },
+      { "name": "Pikachu", "rarity": "COMMON" }
+    ],
+    "packTypes": [
+      {
+        "name": "Booster",
+        "packModel": {
+          "slots": [
+            { "rarity": "COMMON", "count": 5 },
+            { "rarity": "RARE", "count": 1 }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "slug": "funko-marvel",
+    "name": "Funko Pop! — Marvel",
+    "brandSlug": "funko",
+    "category": "FIGURE",
+    "status": "PUBLISHED",
+    "source": "COMMUNITY",
+    "releaseYear": null,
+    "items": [{ "name": "Spider-Man", "rarity": "COMMON" }],
+    "packTypes": [
+      {
+        "name": "Single Box",
+        "packModel": { "items": [{ "itemId": "placeholder" }] }
+      }
+    ]
+  },
+  {
+    "slug": "skullpanda-the-sound",
+    "name": "Skullpanda — The Sound",
+    "brandSlug": "pop-mart",
+    "category": "BLIND_BOX",
+    "status": "PUBLISHED",
+    "source": "COMMUNITY",
+    "releaseYear": null,
+    "items": [
+      { "name": "Melody", "rarity": "COMMON" },
+      { "name": "Secret Chase", "rarity": "SECRET" }
+    ],
+    "packTypes": [
+      {
+        "name": "Case",
+        "packModel": {
+          "caseSize": 12,
+          "assortment": [{ "itemId": "placeholder", "count": 11 }],
+          "chase": { "itemId": "placeholder", "odds": 144 }
+        }
+      }
+    ]
+  }
+]

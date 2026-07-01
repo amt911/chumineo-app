@@ -3,6 +3,22 @@ import { describe, expect, it, vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { CollectionBrowser } from './collection-browser';
 
+vi.mock('@/i18n/navigation', () => ({
+  Link: ({
+    href,
+    children,
+    className,
+  }: {
+    href: string;
+    children: React.ReactNode;
+    className?: string;
+  }) => (
+    <a href={href} className={className}>
+      {children}
+    </a>
+  ),
+}));
+
 vi.mock('@/lib/api', () => ({
   fetchBrands: vi.fn().mockResolvedValue([]),
   fetchCollectionsPage: vi.fn().mockResolvedValue({

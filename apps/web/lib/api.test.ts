@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   fetchCollectionsPage,
   fetchBrands,
@@ -259,5 +259,100 @@ describe('fetchMe', () => {
       vi.fn().mockResolvedValue({ ok: false, status: 401 }),
     );
     await expect(fetchMe('bad')).rejects.toThrow(/401/);
+  });
+});
+
+import {
+  fetchInventoryProgress,
+  addInventoryItem,
+  deleteInventoryItem,
+  fetchWishlist,
+  refreshSession,
+} from './api';
+import { useAuthStore } from './auth-store';
+
+afterEach(() => vi.restoreAllMocks());
+
+function mockFetch(status: number, body: unknown) {
+  return vi.spyOn(global, 'fetch').mockResolvedValue({
+    ok: status >= 200 && status < 300,
+    status,
+    json: async () => body,
+  } as Response);
+}
+
+describe('inventory/wishlist api wrappers', () => {
+  it('fetchInventoryProgress validates the response', async () => {
+    mockFetch(200, [
+      { collection: { slug: 's', name: 'N' }, owned: 1, total: 2, percent: 50 },
+    ]);
+    const r = await fetchInventoryProgress('tok');
+    expect(r[0].percent).toBe(50);
+  });
+
+  it('addInventoryItem sends a Bearer token', async () => {
+    const spy = mockFetch(201, {
+      id: 'inv1',
+      quantity: 1,
+      condition: null,
+      item: { id: 'ci1', name: 'A', rarity: 'COMMON', imageUrl: null },
+      collection: { slug: 's', name: 'N' },
+    });
+    await addInventoryItem({ collectionItemId: 'ci1', quantity: 1 }, 'tok');
+    expect(spy).toHaveBeenCalledWith(
+      expect.stringContaining('/inventory'),
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({ Authorization: 'Bearer tok' }),
+      }),
+    );
+  });
+
+  it('deleteInventoryItem tolerates a 204', async () => {
+    mockFetch(204, null);
+    await expect(deleteInventoryItem('inv1', 'tok')).resolves.toBeUndefined();
+  });
+
+  it('fetchWishlist throws on a non-ok response', async () => {
+    mockFetch(401, { message: 'nope' });
+    await expect(fetchWishlist('tok')).rejects.toThrow();
+    expect(useAuthStore.getState().accessToken).toBeNull();
+  });
+});
+
+describe('refreshSession + 401 retry', () => {
+  beforeEach(() => {
+    useAuthStore.setState({
+      accessToken: 'old',
+      user: null,
+      status: 'authenticated',
+    });
+  });
+
+  it('refreshSession posts to /api/auth/refresh', async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(
+        new Response(JSON.stringify({ accessToken: 'new' }), { status: 200 }),
+      );
+    expect(await refreshSession()).toEqual({ accessToken: 'new' });
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/auth/refresh',
+      expect.objectContaining({ method: 'POST', credentials: 'include' }),
+    );
+  });
+
+  it('retries an authed call once after a 401 by refreshing', async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response('', { status: 401 })) // wishlist 401
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ accessToken: 'new' }), { status: 200 }),
+      ) // refresh
+      .mockResolvedValueOnce(new Response('[]', { status: 200 })); // retry
+    const data = await fetchWishlist('old');
+    expect(data).toEqual([]);
+    expect(useAuthStore.getState().accessToken).toBe('new');
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 });

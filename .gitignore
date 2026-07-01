@@ -9,3 +9,6 @@ coverage/
 
 # graphify output — regenerable via /graphify (graph + AST cache)
 graphify-out/
+
+# local pnpm store
+.pnpm-store/

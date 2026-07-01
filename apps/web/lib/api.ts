@@ -9,11 +9,24 @@ import type {
   PublicProfileDto,
   PublicUserDto,
   RegisterDto,
+  AddInventoryItemDto,
+  UpdateInventoryItemDto,
+  InventoryItemDto,
+  CollectionProgressSummaryDto,
+  CollectionProgressDto,
+  AddWishlistItemDto,
+  UpdateWishlistItemDto,
+  WishlistItemDto,
 } from '@sobrebox/shared';
+import { useAuthStore } from '@/lib/auth-store';
 import {
   brandsResponseSchema,
   collectionDetailSchema,
   collectionsPageSchema,
+  inventoryItemSchema,
+  collectionProgressSummarySchema,
+  collectionProgressSchema,
+  wishlistItemSchema,
 } from '@sobrebox/shared';
 
 // Server components (RSC) fetch the API directly on the host (absolute URL).
@@ -111,4 +124,147 @@ export async function fetchMe(accessToken: string): Promise<PublicUserDto> {
   });
   if (!res.ok) throw new Error(`Failed to fetch me: ${res.status}`);
   return res.json() as Promise<PublicUserDto>;
+}
+
+export async function refreshSession(): Promise<{ accessToken: string }> {
+  const res = await fetch(`${API_URL}/auth/refresh`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+  if (!res.ok) throw new Error(`Refresh failed: ${res.status}`);
+  return res.json() as Promise<{ accessToken: string }>;
+}
+
+async function authedJson<T>(
+  path: string,
+  accessToken: string,
+  init?: RequestInit,
+  retry = true,
+): Promise<T> {
+  const res = await fetch(`${API_URL}${path}`, {
+    ...init,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+      ...(init?.headers ?? {}),
+    },
+    credentials: 'include',
+  });
+  if (res.status === 401 && retry) {
+    try {
+      const { accessToken: fresh } = await refreshSession();
+      useAuthStore.getState().setAccessToken(fresh);
+      return authedJson<T>(path, fresh, init, false);
+    } catch {
+      useAuthStore.getState().clear();
+      throw new Error('Request failed: 401');
+    }
+  }
+  if (!res.ok) {
+    const data = (await res.json().catch(() => null)) as {
+      message?: string;
+    } | null;
+    throw new Error(data?.message ?? `Request failed: ${res.status}`);
+  }
+  if (res.status === 204) return undefined as T;
+  return res.json() as Promise<T>;
+}
+
+// --- inventory ---
+export async function fetchMyInventory(
+  accessToken: string,
+): Promise<InventoryItemDto[]> {
+  return inventoryItemSchema
+    .array()
+    .parse(await authedJson('/inventory', accessToken));
+}
+
+export async function fetchInventoryProgress(
+  accessToken: string,
+): Promise<CollectionProgressSummaryDto[]> {
+  return collectionProgressSummarySchema
+    .array()
+    .parse(await authedJson('/inventory/progress', accessToken));
+}
+
+export async function fetchCollectionProgress(
+  slug: string,
+  accessToken: string,
+): Promise<CollectionProgressDto> {
+  return collectionProgressSchema.parse(
+    await authedJson(`/inventory/collections/${slug}/progress`, accessToken),
+  );
+}
+
+export async function addInventoryItem(
+  dto: AddInventoryItemDto,
+  accessToken: string,
+): Promise<InventoryItemDto> {
+  return inventoryItemSchema.parse(
+    await authedJson('/inventory', accessToken, {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    }),
+  );
+}
+
+export async function updateInventoryItem(
+  id: string,
+  dto: UpdateInventoryItemDto,
+  accessToken: string,
+): Promise<InventoryItemDto> {
+  return inventoryItemSchema.parse(
+    await authedJson(`/inventory/${id}`, accessToken, {
+      method: 'PATCH',
+      body: JSON.stringify(dto),
+    }),
+  );
+}
+
+export async function deleteInventoryItem(
+  id: string,
+  accessToken: string,
+): Promise<void> {
+  await authedJson(`/inventory/${id}`, accessToken, { method: 'DELETE' });
+}
+
+// --- wishlist ---
+export async function fetchWishlist(
+  accessToken: string,
+): Promise<WishlistItemDto[]> {
+  return wishlistItemSchema
+    .array()
+    .parse(await authedJson('/wishlist', accessToken));
+}
+
+export async function addWishlistItem(
+  dto: AddWishlistItemDto,
+  accessToken: string,
+): Promise<WishlistItemDto> {
+  return wishlistItemSchema.parse(
+    await authedJson('/wishlist', accessToken, {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    }),
+  );
+}
+
+export async function updateWishlistItem(
+  id: string,
+  dto: UpdateWishlistItemDto,
+  accessToken: string,
+): Promise<WishlistItemDto> {
+  return wishlistItemSchema.parse(
+    await authedJson(`/wishlist/${id}`, accessToken, {
+      method: 'PATCH',
+      body: JSON.stringify(dto),
+    }),
+  );
+}
+
+export async function deleteWishlistItem(
+  id: string,
+  accessToken: string,
+): Promise<void> {
+  await authedJson(`/wishlist/${id}`, accessToken, { method: 'DELETE' });
 }

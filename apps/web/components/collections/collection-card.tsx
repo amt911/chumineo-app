@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { CollectionSource, type CollectionListItemDto } from '@sobrebox/shared';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';

@@ -5,6 +5,21 @@ import { RegisterForm } from './register-form';
 import * as api from '@/lib/api';
 
 vi.mock('@/lib/api');
+vi.mock('@/i18n/navigation', () => ({
+  Link: ({
+    href,
+    children,
+    className,
+  }: {
+    href: string;
+    children: React.ReactNode;
+    className?: string;
+  }) => (
+    <a href={href} className={className}>
+      {children}
+    </a>
+  ),
+}));
 
 describe('RegisterForm', () => {
   beforeEach(() => vi.clearAllMocks());

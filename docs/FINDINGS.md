@@ -67,6 +67,38 @@
 - Postgres enum order = declaration order, so `orderBy: { rarity: 'asc' }` yields
   COMMON→…→LIMITED — relied on for the detail items + rarity distribution order.
 
+## Inventory / Wishlist
+
+- `UserInventory.condition` and `WishlistItem` migrated `condition` from `String?`
+  to the `Condition` enum; the repo seed never set it, so no data migration was
+  needed. New enums `Condition` + `WishlistPriority` are parity-guarded.
+- `WishlistItem.maxPrice` is `Decimal(12,2)` → serializes as a **string** over HTTP
+  (DTO `z.string()`), same as `officialPullRate`/`price`.
+- "Lo que falta" is **derived on read** (collection items − owned), no counter table.
+  `GET /inventory/progress` returns light summaries; `/inventory/collections/:slug/progress`
+  returns the full per-item list. Catalog endpoints stay public/untouched.
+- `priority asc` / `rarity asc` rely on Postgres enum **declaration order**
+  (HIGH→LOW, COMMON→LIMITED).
+- Prisma `Decimal.toString()` drops trailing zeros (`80.00` → `'80'`); for fixed-scale
+  money DTOs use `.toFixed(scale)` instead. `wishlist.service` maxPrice uses `.toFixed(2)`.
+  NOTE: `catalog` service still uses `.toString()` for `price`/`officialPullRate` — same
+  latent issue, follow-up.
+- **TanStack query keys:** `/inventory` summary uses `['inventory','progress']`; per-collection
+  detail uses `['inventory','progress',slug]`. Invalidate the SHORTER prefix to refresh both
+  (prefix-matching is one-directional — the longer key does NOT match the shorter).
+- **Wishlist POST is upsert-REPLACE:** a second POST for the same item overwrites `priority`/`isPublic`
+  with the request's values (defaults `MEDIUM`/`true` if omitted). Inventory POST instead INCREMENTS
+  quantity. The two verbs differ by design (spec 4.x).
+- **Docker dev + cambios de lockfile:** los contenedores dev `sobrebox-api`/`sobrebox-web`
+  guardan `node_modules` en **volúmenes anónimos** (enmascaran el host), horneados al construir
+  la imagen. Cuando cambia el lockfile de pnpm (dep nueva), el `node_modules` del contenedor
+  queda stale y pnpm **aborta al arrancar** con `ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY`
+  (quiere purgar+reinstalar, sin TTY). Fix permanente aplicado: `CI: 'true'` en el `environment`
+  de ambos servicios → pnpm reinstala solo. Recuperación puntual sin eso:
+  `docker compose up -d --build --renew-anon-volumes --force-recreate sobrebox-api sobrebox-web`.
+  (El mismo gotcha del volumen anónimo afecta al cliente Prisma generado — regenéralo dentro
+  del contenedor.)
+
 ## Pendiente (Playwright)
 
 - Playwright (e2e de frontend) está **declarado pero diferido a la épica 3** (animación de apertura). Aún no hay script de frontend-e2e.

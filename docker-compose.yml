@@ -50,6 +50,10 @@ services:
       # From .env (localhost) or overridden by the tailscale wrapper for mobile.
       CORS_ORIGINS: ${CORS_ORIGINS}
       WEB_PUBLIC_URL: ${WEB_PUBLIC_URL}
+      # A lockfile change leaves the anon-volume node_modules stale; CI=true lets
+      # pnpm auto-purge + reinstall on start instead of aborting on no TTY
+      # (ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY).
+      CI: 'true'
     ports:
       - '${API_PORT}:3000'
     volumes:
@@ -73,6 +77,9 @@ services:
       # Tailnet origins so Next allows the phone's cross-origin dev requests.
       # Empty from .env; set by the tailscale wrapper (dev:docker:tailscale).
       ALLOWED_DEV_ORIGINS: ${ALLOWED_DEV_ORIGINS}
+      # See sobrebox-api: CI=true avoids the no-TTY pnpm modules-purge abort when
+      # the lockfile changes.
+      CI: 'true'
     ports:
       - '${WEB_PORT}:3000'
     volumes:

@@ -1,92 +1,66 @@
-import { PrismaClient, Rarity } from '@prisma/client';
-import {
-  CollectionCategory,
-  CollectionSource,
-  CollectionStatus,
-  validatePackModel,
-} from '@sobrebox/shared';
+import { PrismaClient, Prisma } from '@prisma/client';
+import { validatePackModel } from '@sobrebox/shared';
+import { loadFixtures } from './fixtures';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  const tcgPack = {
-    slots: [
-      { rarity: Rarity.COMMON, count: 5 },
-      { rarity: Rarity.RARE, count: 1 },
-    ],
-  };
-  // itemId references a CollectionItem.id; 'placeholder' is seed-only (not a real id).
-  const figurePack = { items: [{ itemId: 'placeholder' }] };
-  const blindPack = {
-    caseSize: 12,
-    assortment: [{ itemId: 'placeholder', count: 11 }],
-    chase: { itemId: 'placeholder', odds: 144 },
-  };
+  const { brands, collections } = loadFixtures();
 
-  for (const [category, model] of [
-    [CollectionCategory.TCG, tcgPack],
-    [CollectionCategory.FIGURE, figurePack],
-    [CollectionCategory.BLIND_BOX, blindPack],
-  ] as const) {
-    if (!validatePackModel(category, model).success) {
-      throw new Error(`Seed pack model invalid for ${category}`);
+  // Validate every pack model against its category schema before writing.
+  for (const c of collections) {
+    for (const pt of c.packTypes) {
+      if (!validatePackModel(c.category, pt.packModel).success) {
+        throw new Error(
+          `Seed pack model invalid for ${c.slug} / ${pt.name} (${c.category})`,
+        );
+      }
     }
   }
 
-  const pokemon = await prisma.brand.upsert({
-    where: { slug: 'pokemon' }, update: {}, create: { slug: 'pokemon', name: 'Pokémon' },
-  });
-  const funko = await prisma.brand.upsert({
-    where: { slug: 'funko' }, update: {}, create: { slug: 'funko', name: 'Funko' },
-  });
-  const popmart = await prisma.brand.upsert({
-    where: { slug: 'pop-mart' }, update: {}, create: { slug: 'pop-mart', name: 'Pop Mart' },
-  });
+  // Brands: idempotent upsert by slug → slug→id map for collection FKs.
+  const brandIdBySlug = new Map<string, string>();
+  for (const b of brands) {
+    const row = await prisma.brand.upsert({
+      where: { slug: b.slug },
+      update: {},
+      create: { slug: b.slug, name: b.name },
+    });
+    brandIdBySlug.set(b.slug, row.id);
+  }
 
-  await prisma.collection.upsert({
-    where: { slug: 'sv-obsidian-flames' },
-    update: {},
-    create: {
-      slug: 'sv-obsidian-flames', name: 'Scarlet & Violet — Obsidian Flames',
-      brandId: pokemon.id, category: CollectionCategory.TCG,
-      status: CollectionStatus.PUBLISHED, source: CollectionSource.API_IMPORT,
-      releaseYear: 2023,
-      items: { create: [
-        { name: 'Charizard ex', rarity: Rarity.ULTRA_RARE },
-        { name: 'Pikachu', rarity: Rarity.COMMON },
-      ] },
-      packTypes: { create: [{ name: 'Booster', packModel: tcgPack }] },
-    },
-  });
-
-  await prisma.collection.upsert({
-    where: { slug: 'funko-marvel' },
-    update: {},
-    create: {
-      slug: 'funko-marvel', name: 'Funko Pop! — Marvel',
-      brandId: funko.id, category: CollectionCategory.FIGURE,
-      status: CollectionStatus.PUBLISHED, source: CollectionSource.COMMUNITY,
-      items: { create: [{ name: 'Spider-Man', rarity: Rarity.COMMON }] },
-      packTypes: { create: [{ name: 'Single Box', packModel: figurePack }] },
-    },
-  });
-
-  await prisma.collection.upsert({
-    where: { slug: 'skullpanda-the-sound' },
-    update: {},
-    create: {
-      slug: 'skullpanda-the-sound', name: 'Skullpanda — The Sound',
-      brandId: popmart.id, category: CollectionCategory.BLIND_BOX,
-      status: CollectionStatus.PUBLISHED, source: CollectionSource.COMMUNITY,
-      items: { create: [
-        { name: 'Melody', rarity: Rarity.COMMON },
-        { name: 'Secret Chase', rarity: Rarity.SECRET },
-      ] },
-      packTypes: { create: [{ name: 'Case', packModel: blindPack }] },
-    },
-  });
+  for (const c of collections) {
+    const brandId = brandIdBySlug.get(c.brandSlug);
+    if (!brandId) throw new Error(`Unknown brandSlug "${c.brandSlug}"`);
+    await prisma.collection.upsert({
+      where: { slug: c.slug },
+      update: {},
+      create: {
+        slug: c.slug,
+        name: c.name,
+        brandId,
+        category: c.category,
+        status: c.status,
+        source: c.source,
+        releaseYear: c.releaseYear ?? null,
+        items: {
+          create: c.items.map((i) => ({ name: i.name, rarity: i.rarity })),
+        },
+        packTypes: {
+          create: c.packTypes.map((pt) => ({
+            name: pt.name,
+            packModel: pt.packModel as Prisma.InputJsonValue,
+          })),
+        },
+      },
+    });
+  }
 }
 
-main().then(() => prisma.$disconnect()).catch(async (e) => {
-  console.error(e); await prisma.$disconnect(); process.exit(1);
-});
+main()
+  .then(() => prisma.$disconnect())
+  .catch(async (e) => {
+    console.error(e);
+    await prisma.$disconnect();
+    process.exit(1);
+  });

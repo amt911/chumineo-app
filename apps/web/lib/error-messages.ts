@@ -1,0 +1,13 @@
+import { AUTH_ERROR_CODES, type AuthErrorCode } from '@sobrebox/shared';
+
+export type ErrorMessageKey = `Errors.${AuthErrorCode}` | 'Errors.UNKNOWN';
+
+const KNOWN = new Set<string>(Object.values(AUTH_ERROR_CODES));
+
+// Map an API error code (or any thrown message) to a translation key.
+// Known auth codes -> `Errors.<code>`; anything else -> `Errors.UNKNOWN`.
+export function errorMessageKey(code: string): ErrorMessageKey {
+  return (
+    KNOWN.has(code) ? `Errors.${code}` : 'Errors.UNKNOWN'
+  ) as ErrorMessageKey;
+}

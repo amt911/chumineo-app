@@ -16,6 +16,7 @@
     "lint": "turbo run lint",
     "type-check": "turbo run type-check",
     "infra:up": "pnpm bootstrap && docker compose up -d sobrebox-db sobrebox-redis sobrebox-mailpit",
+    "infra:up:logs": "pnpm bootstrap && docker compose up sobrebox-db sobrebox-redis sobrebox-mailpit",
     "infra:down": "docker compose down",
     "infra:restart": "pnpm infra:down && pnpm infra:up",
     "infra:clean": "docker compose down -v",

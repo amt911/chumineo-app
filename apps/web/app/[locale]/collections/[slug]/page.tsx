@@ -6,6 +6,7 @@ import {
 } from '@sobrebox/shared';
 import { fetchCollectionDetail } from '@/lib/api';
 import { RarityBadge } from '@/components/collections/rarity-badge';
+import { CollectionOwnershipPanel } from '@/components/inventory/collection-ownership-panel';
 
 const RARITY_ORDER: Rarity[] = [
   Rarity.COMMON,
@@ -124,6 +125,8 @@ export default async function CollectionDetailPage({
       <p className="mt-8 text-sm text-muted-foreground/70">
         Community pull rates, opening counts and collectors: coming soon.
       </p>
+
+      <CollectionOwnershipPanel slug={detail.slug} />
     </main>
   );
 }

@@ -1,0 +1,47 @@
+{
+  "Common": { "loading": "Loading…" },
+  "Nav": {
+    "login": "Log in",
+    "register": "Sign up",
+    "logout": "Log out",
+    "collections": "Collections",
+    "inventory": "Inventory",
+    "wishlist": "Wishlist"
+  },
+  "Inventory": {
+    "title": "My inventory",
+    "loginPrompt": "Log in to see your inventory.",
+    "empty": "No items yet. Mark what you own from a collection.",
+    "progress": "{owned} / {total} · {percent}%"
+  },
+  "Wishlist": {
+    "title": "My wishlist",
+    "loginPrompt": "Log in to see your wishlist.",
+    "empty": "Your wishlist is empty.",
+    "remove": "Remove",
+    "maxPrice": "max {price}€"
+  },
+  "Collections": {
+    "progressTitle": "Your progress",
+    "have": "Have {name}",
+    "addOne": "+1 {name}",
+    "owned": "I have it",
+    "want": "I want it",
+    "missing": "(missing)",
+    "wishlist": "Wishlist",
+    "removeOwned": "Remove {name} from inventory",
+    "addWishlist": "Add {name} to wishlist",
+    "removeWishlist": "Remove {name} from wishlist",
+    "toastAdded": "{name} added to your inventory",
+    "toastRemoved": "{name} removed from your inventory",
+    "toastWishAdded": "{name} added to your wishlist",
+    "toastWishRemoved": "{name} removed from your wishlist",
+    "toastError": "Something went wrong. Please try again.",
+    "complete": "Collection complete!"
+  },
+  "Errors": {
+    "EMAIL_NOT_VERIFIED": "Please verify your email before logging in.",
+    "INVALID_CREDENTIALS": "Wrong email or password.",
+    "UNKNOWN": "Something went wrong. Please try again."
+  }
+}

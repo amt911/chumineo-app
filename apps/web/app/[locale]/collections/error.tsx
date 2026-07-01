@@ -1,6 +1,11 @@
 'use client';
 
-export default function CollectionsError({ reset }: { error: Error; reset: () => void }) {
+export default function CollectionsError({
+  reset,
+}: {
+  error: Error;
+  reset: () => void;
+}) {
   return (
     <main>
       <h1>Collections</h1>
