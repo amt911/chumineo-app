@@ -122,9 +122,12 @@ export class ListingsService {
     return this.toDto(created);
   }
 
-  async listPublic(query: ListingQueryDto): Promise<ListingsPageDto> {
+  async listPublic(
+    query: ListingQueryDto,
+    ownerId?: string,
+  ): Promise<ListingsPageDto> {
     const where = {
-      status: ListingStatus.ACTIVE,
+      ...(ownerId ? { sellerId: ownerId } : { status: ListingStatus.ACTIVE }),
       ...(query.collectionItemId
         ? { collectionItemId: query.collectionItemId }
         : {}),
@@ -132,7 +135,9 @@ export class ListingsService {
         ? { collectionItem: { collectionId: query.collectionId } }
         : {}),
       ...(query.condition ? { condition: query.condition } : {}),
-      ...(query.country ? { seller: { country: query.country } } : {}),
+      ...(!ownerId && query.country
+        ? { seller: { country: query.country } }
+        : {}),
       ...(query.q
         ? {
             collectionItem: {

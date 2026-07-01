@@ -54,7 +54,10 @@
     "price": "Price",
     "description": "Description",
     "submit": "Publish listing",
-    "toastCreated": "Listing published"
+    "toastCreated": "Listing published",
+    "mineEmpty": "You have no listings.",
+    "pause": "Pause / Resume",
+    "delete": "Delete"
   },
   "Errors": {
     "EMAIL_NOT_VERIFIED": "Please verify your email before logging in.",

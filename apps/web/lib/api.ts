@@ -292,6 +292,14 @@ export async function fetchListings(
   return listingsPageSchema.parse(await res.json());
 }
 
+export async function fetchMyListings(
+  accessToken: string,
+): Promise<ListingsPageDto> {
+  return listingsPageSchema.parse(
+    await authedJson('/marketplace/listings/mine', accessToken),
+  );
+}
+
 export async function fetchListing(id: string): Promise<ListingDto> {
   const res = await fetch(`${API_URL}/marketplace/listings/${id}`, {
     cache: 'no-store',

@@ -145,3 +145,22 @@ describe('ListingsService.remove', () => {
     );
   });
 });
+
+describe('ListingsService.listPublic with ownerId', () => {
+  it('returns all statuses for the owner, ignoring the ACTIVE-only public filter', async () => {
+    const prisma = makePrisma();
+    prisma.listing.findMany.mockResolvedValue([
+      row({ status: ListingStatus.PAUSED }),
+    ]);
+    prisma.listing.count.mockResolvedValue(1);
+    const service = new ListingsService(
+      prisma as never,
+      makeStorage() as never,
+    );
+    const page = await service.listPublic({ page: 1 } as never, 'u1');
+    expect(page.items[0].status).toBe(ListingStatus.PAUSED);
+    expect(prisma.listing.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { sellerId: 'u1' } }),
+    );
+  });
+});

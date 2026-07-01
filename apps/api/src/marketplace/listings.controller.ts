@@ -49,6 +49,12 @@ export class ListingsController {
     return this.listings.listPublic(query);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get('mine')
+  listMine(@CurrentUser() user: RequestUser): Promise<ListingsPageDto> {
+    return this.listings.listPublic({ page: 1 } as never, user.id);
+  }
+
   @UseGuards(OptionalJwtAuthGuard)
   @Get(':id')
   get(

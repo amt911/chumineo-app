@@ -54,7 +54,10 @@
     "price": "Precio",
     "description": "Descripción",
     "submit": "Publicar anuncio",
-    "toastCreated": "Anuncio publicado"
+    "toastCreated": "Anuncio publicado",
+    "mineEmpty": "No tienes anuncios.",
+    "pause": "Pausar / Reactivar",
+    "delete": "Eliminar"
   },
   "Errors": {
     "EMAIL_NOT_VERIFIED": "Verifica tu correo antes de iniciar sesión.",

@@ -53,6 +53,7 @@ export const listingQuerySchema = z.object({
     .optional(),
   sort: listingSortSchema.optional(),
   page: z.coerce.number().int().positive().default(1),
+  mine: z.boolean().optional(),
 });
 export type ListingQueryDto = z.infer<typeof listingQuerySchema>;
 
