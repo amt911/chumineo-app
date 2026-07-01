@@ -39,7 +39,7 @@ export function CreateListingForm({
       toast.success(t('toastCreated'));
       router.push(`/marketplace/${listing.id}`);
     },
-    onError: () => toast.error(t('toastCreated')),
+    onError: () => toast.error(t('toastError')),
   });
 
   return (

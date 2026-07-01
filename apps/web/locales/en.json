@@ -57,7 +57,8 @@
     "toastCreated": "Listing published",
     "mineEmpty": "You have no listings.",
     "pause": "Pause / Resume",
-    "delete": "Delete"
+    "delete": "Delete",
+    "toastError": "Something went wrong. Please try again."
   },
   "Profile": {
     "country": "Country",

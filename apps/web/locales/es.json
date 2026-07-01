@@ -57,7 +57,8 @@
     "toastCreated": "Anuncio publicado",
     "mineEmpty": "No tienes anuncios.",
     "pause": "Pausar / Reactivar",
-    "delete": "Eliminar"
+    "delete": "Eliminar",
+    "toastError": "Algo salió mal. Inténtalo de nuevo."
   },
   "Profile": {
     "country": "País",
