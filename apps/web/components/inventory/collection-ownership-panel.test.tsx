@@ -146,6 +146,87 @@ describe('CollectionOwnershipPanel', () => {
     await waitFor(() => expect(toast.success).toHaveBeenCalled());
   });
 
+  it('increments an owned item by setting the absolute quantity', async () => {
+    authenticate();
+    vi.spyOn(api, 'fetchCollectionProgress').mockResolvedValue(progress);
+    const upd = vi.spyOn(api, 'updateInventoryItem').mockResolvedValue({
+      id: 'inv-a',
+      quantity: 2,
+      condition: null,
+      item: { id: 'a', name: 'A', rarity: Rarity.COMMON, imageUrl: null },
+      collection: { slug: 's', name: 'N' },
+    });
+    wrap(<CollectionOwnershipPanel slug="s" />);
+    await waitFor(() => screen.getByText('A'));
+    fireEvent.click(screen.getByRole('button', { name: /\+1.*A/i }));
+    await waitFor(() =>
+      expect(upd).toHaveBeenCalledWith('inv-a', { quantity: 2 }, 'tok'),
+    );
+  });
+
+  it('decrements an owned item with quantity > 1 by setting quantity - 1', async () => {
+    authenticate();
+    vi.spyOn(api, 'fetchCollectionProgress').mockResolvedValue({
+      ...progress,
+      items: [{ ...progress.items[0], ownedQuantity: 3 }, progress.items[1]],
+    });
+    const upd = vi.spyOn(api, 'updateInventoryItem').mockResolvedValue({
+      id: 'inv-a',
+      quantity: 2,
+      condition: null,
+      item: { id: 'a', name: 'A', rarity: Rarity.COMMON, imageUrl: null },
+      collection: { slug: 's', name: 'N' },
+    });
+    wrap(<CollectionOwnershipPanel slug="s" />);
+    await waitFor(() => screen.getByText('A'));
+    fireEvent.click(screen.getByRole('button', { name: /quitar uno de A/i }));
+    await waitFor(() =>
+      expect(upd).toHaveBeenCalledWith('inv-a', { quantity: 2 }, 'tok'),
+    );
+  });
+
+  it('removes the item when decrementing at quantity 1', async () => {
+    authenticate();
+    vi.spyOn(api, 'fetchCollectionProgress').mockResolvedValue(progress);
+    const del = vi.spyOn(api, 'deleteInventoryItem').mockResolvedValue();
+    wrap(<CollectionOwnershipPanel slug="s" />);
+    await waitFor(() => screen.getByText('A'));
+    fireEvent.click(screen.getByRole('button', { name: /quitar uno de A/i }));
+    await waitFor(() => expect(del).toHaveBeenCalledWith('inv-a', 'tok'));
+  });
+
+  it('sets an exact quantity typed into the input', async () => {
+    authenticate();
+    vi.spyOn(api, 'fetchCollectionProgress').mockResolvedValue(progress);
+    const upd = vi.spyOn(api, 'updateInventoryItem').mockResolvedValue({
+      id: 'inv-a',
+      quantity: 5,
+      condition: null,
+      item: { id: 'a', name: 'A', rarity: Rarity.COMMON, imageUrl: null },
+      collection: { slug: 's', name: 'N' },
+    });
+    wrap(<CollectionOwnershipPanel slug="s" />);
+    await waitFor(() => screen.getByText('A'));
+    const input = screen.getByLabelText(/cantidad de A/i);
+    fireEvent.change(input, { target: { value: '5' } });
+    fireEvent.blur(input);
+    await waitFor(() =>
+      expect(upd).toHaveBeenCalledWith('inv-a', { quantity: 5 }, 'tok'),
+    );
+  });
+
+  it('removes the item when the quantity input is set to 0', async () => {
+    authenticate();
+    vi.spyOn(api, 'fetchCollectionProgress').mockResolvedValue(progress);
+    const del = vi.spyOn(api, 'deleteInventoryItem').mockResolvedValue();
+    wrap(<CollectionOwnershipPanel slug="s" />);
+    await waitFor(() => screen.getByText('A'));
+    const input = screen.getByLabelText(/cantidad de A/i);
+    fireEvent.change(input, { target: { value: '0' } });
+    fireEvent.blur(input);
+    await waitFor(() => expect(del).toHaveBeenCalledWith('inv-a', 'tok'));
+  });
+
   it('adds a missing item to the wishlist', async () => {
     authenticate();
     vi.spyOn(api, 'fetchCollectionProgress').mockResolvedValue(progress);
