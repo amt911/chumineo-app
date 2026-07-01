@@ -126,6 +126,17 @@
   tres contiene lógica de dominio; los services/controllers de marketplace, storage e image NO
   están excluidos y se cubren con tests reales (branch coverage).
 
+- **`test:e2e` necesita RustFS levantado — también en CI.** `StorageModule` es `@Global` y
+  `S3BucketInitializer.onModuleInit` hace un `CreateBucket` contra `S3_ENDPOINT` al arrancar la
+  app. El e2e monta el `AppModule` completo, así que sin un S3 escuchando TODAS las specs e2e
+  fallan en el boot con `AggregateError`/ECONNREFUSED (no solo las de marketplace). En local lo
+  cubre `pnpm infra:up`; en CI hay que declarar un **service container `rustfs`** en
+  `.github/workflows/ci.yml` (imagen `rustfs/rustfs`, `RUSTFS_ACCESS_KEY`/`RUSTFS_SECRET_KEY`
+  casando con `.env.example`, puerto `9000:9000`, sin `command`). `pnpm bootstrap` genera el
+  `.env` desde `.env.example` (`S3_ENDPOINT=http://localhost:9000`), por eso el puerto/keys deben
+  coincidir. Los tests unit (`test:cov`) NO lo necesitan (mockean prisma/storage, no montan el
+  `AppModule` con DI eager).
+
 ## Pendiente (Playwright)
 
 - Playwright (e2e de frontend) está **declarado pero diferido a la épica 3** (animación de apertura). Aún no hay script de frontend-e2e.
