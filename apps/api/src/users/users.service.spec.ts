@@ -35,12 +35,14 @@ describe('UsersService', () => {
       avatarUrl: null,
       createdAt: created,
       email: 'secret@b.com',
+      country: 'ES',
     });
     const profile = await service.getPublicProfile('neo');
     expect(profile).toEqual({
       username: 'neo',
       avatarUrl: null,
       memberSince: created.toISOString(),
+      country: 'ES',
     });
     expect(profile).not.toHaveProperty('email');
   });

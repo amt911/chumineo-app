@@ -59,6 +59,11 @@
     "pause": "Pausar / Reactivar",
     "delete": "Eliminar"
   },
+  "Profile": {
+    "country": "País",
+    "save": "Guardar",
+    "toastSaved": "Guardado"
+  },
   "Errors": {
     "EMAIL_NOT_VERIFIED": "Verifica tu correo antes de iniciar sesión.",
     "INVALID_CREDENTIALS": "Email o contraseña incorrectos.",

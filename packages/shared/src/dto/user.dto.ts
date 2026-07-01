@@ -18,6 +18,7 @@ export const publicProfileSchema = z.object({
   username: z.string(),
   avatarUrl: z.string().nullable(),
   memberSince: z.string(), // ISO date string (Prisma DateTime serializes to string)
+  country: countryCode.nullable(),
 });
 export type PublicProfileDto = z.infer<typeof publicProfileSchema>;
 

@@ -36,6 +36,7 @@ export class UsersService {
       username: user.username,
       avatarUrl: user.avatarUrl,
       memberSince: user.createdAt.toISOString(),
+      country: user.country,
     });
   }
 

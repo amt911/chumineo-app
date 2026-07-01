@@ -59,6 +59,11 @@
     "pause": "Pause / Resume",
     "delete": "Delete"
   },
+  "Profile": {
+    "country": "Country",
+    "save": "Save",
+    "toastSaved": "Saved"
+  },
   "Errors": {
     "EMAIL_NOT_VERIFIED": "Please verify your email before logging in.",
     "INVALID_CREDENTIALS": "Wrong email or password.",

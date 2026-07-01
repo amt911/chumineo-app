@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { fetchPublicProfile } from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { ProfileCountrySection } from '@/components/profile/profile-country-section';
 
 export default async function ProfilePage({
   params,
@@ -32,6 +33,10 @@ export default async function ProfilePage({
           </div>
         </CardContent>
       </Card>
+      <ProfileCountrySection
+        username={profile.username}
+        country={profile.country ?? null}
+      />
     </div>
   );
 }
