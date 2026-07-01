@@ -179,17 +179,30 @@ export class InventoryService {
 
     const owned = await this.prisma.userInventory.findMany({
       where: { userId, collectionItem: { collection: { slug } } },
-      select: { collectionItemId: true, quantity: true },
+      select: { id: true, collectionItemId: true, quantity: true },
     });
     const ownedMap = new Map(
-      owned.map((o) => [o.collectionItemId, o.quantity]),
+      owned.map((o) => [
+        o.collectionItemId,
+        { id: o.id, quantity: o.quantity },
+      ]),
+    );
+
+    const wishlisted = await this.prisma.wishlistItem.findMany({
+      where: { userId, collectionItem: { collection: { slug } } },
+      select: { id: true, collectionItemId: true },
+    });
+    const wishlistMap = new Map(
+      wishlisted.map((w) => [w.collectionItemId, w.id]),
     );
 
     const items = c.items.map((i) => ({
       collectionItemId: i.id,
       name: i.name,
       rarity: i.rarity,
-      ownedQuantity: ownedMap.get(i.id) ?? 0,
+      ownedQuantity: ownedMap.get(i.id)?.quantity ?? 0,
+      inventoryId: ownedMap.get(i.id)?.id ?? null,
+      wishlistId: wishlistMap.get(i.id) ?? null,
     }));
     const ownedCount = items.filter((i) => i.ownedQuantity > 0).length;
     const total = c.items.length;

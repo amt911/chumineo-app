@@ -14,6 +14,7 @@ interface PrismaMock {
     count: AnyFn;
   };
   collection: { findFirst: AnyFn; findMany: AnyFn };
+  wishlistItem: { findMany: AnyFn };
 }
 
 const row = (over: Partial<Record<string, unknown>> = {}) => ({
@@ -42,6 +43,7 @@ function makePrisma(): PrismaMock {
       count: jest.fn(),
     },
     collection: { findFirst: jest.fn(), findMany: jest.fn() },
+    wishlistItem: { findMany: jest.fn() },
   };
 }
 
@@ -145,8 +147,9 @@ describe('InventoryService', () => {
         ],
       });
       prisma.userInventory.findMany.mockResolvedValue([
-        { collectionItemId: 'a', quantity: 1 },
+        { id: 'inv-a', collectionItemId: 'a', quantity: 1 },
       ]);
+      prisma.wishlistItem.findMany.mockResolvedValue([]);
       const p = await service.collectionProgress('u1', 's');
       expect(p.owned).toBe(1);
       expect(p.total).toBe(3);
@@ -154,6 +157,39 @@ describe('InventoryService', () => {
       expect(
         p.items.find((i) => i.collectionItemId === 'b')?.ownedQuantity,
       ).toBe(0);
+    });
+
+    it('exposes inventoryId for owned items and wishlistId for wishlisted ones', async () => {
+      prisma.collection.findFirst.mockResolvedValue({
+        slug: 's',
+        name: 'N',
+        items: [
+          { id: 'a', name: 'A', rarity: 'COMMON' },
+          { id: 'b', name: 'B', rarity: 'RARE' },
+          { id: 'c', name: 'C', rarity: 'SECRET' },
+        ],
+      });
+      prisma.userInventory.findMany.mockResolvedValue([
+        { id: 'inv-a', collectionItemId: 'a', quantity: 1 },
+      ]);
+      prisma.wishlistItem.findMany.mockResolvedValue([
+        { id: 'wish-b', collectionItemId: 'b' },
+      ]);
+      const p = await service.collectionProgress('u1', 's');
+      const a = p.items.find((i) => i.collectionItemId === 'a');
+      const b = p.items.find((i) => i.collectionItemId === 'b');
+      const c = p.items.find((i) => i.collectionItemId === 'c');
+      expect(a).toMatchObject({ inventoryId: 'inv-a', wishlistId: null });
+      expect(b).toMatchObject({ inventoryId: null, wishlistId: 'wish-b' });
+      expect(c).toMatchObject({ inventoryId: null, wishlistId: null });
+      expect(prisma.wishlistItem.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            userId: 'u1',
+            collectionItem: { collection: { slug: 's' } },
+          },
+        }),
+      );
     });
   });
 

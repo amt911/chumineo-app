@@ -25,8 +25,19 @@
     "progressTitle": "Your progress",
     "have": "Have {name}",
     "addOne": "+1 {name}",
+    "owned": "I have it",
+    "want": "I want it",
     "missing": "(missing)",
-    "wishlist": "Wishlist"
+    "wishlist": "Wishlist",
+    "removeOwned": "Remove {name} from inventory",
+    "addWishlist": "Add {name} to wishlist",
+    "removeWishlist": "Remove {name} from wishlist",
+    "toastAdded": "{name} added to your inventory",
+    "toastRemoved": "{name} removed from your inventory",
+    "toastWishAdded": "{name} added to your wishlist",
+    "toastWishRemoved": "{name} removed from your wishlist",
+    "toastError": "Something went wrong. Please try again.",
+    "complete": "Collection complete!"
   },
   "Errors": {
     "EMAIL_NOT_VERIFIED": "Please verify your email before logging in.",

@@ -55,6 +55,9 @@ export const collectionProgressItemSchema = z.object({
   name: z.string(),
   rarity: z.nativeEnum(Rarity),
   ownedQuantity: z.number().int(),
+  // Row ids so the UI can toggle state off (delete). Null when absent.
+  inventoryId: z.string().nullable(),
+  wishlistId: z.string().nullable(),
 });
 
 export const collectionProgressSchema = collectionProgressSummarySchema.extend({

@@ -71,15 +71,37 @@ describe('collectionProgressSchema', () => {
           name: 'A',
           rarity: Rarity.COMMON,
           ownedQuantity: 1,
+          inventoryId: 'inv-a',
+          wishlistId: null,
         },
         {
           collectionItemId: 'b',
           name: 'B',
           rarity: Rarity.RARE,
           ownedQuantity: 0,
+          inventoryId: null,
+          wishlistId: 'wish-b',
         },
       ],
     };
     expect(collectionProgressSchema.parse(p)).toEqual(p);
+  });
+
+  it('requires inventoryId and wishlistId on each item (nullable)', () => {
+    const missing = {
+      collection: { slug: 's', name: 'N' },
+      owned: 0,
+      total: 1,
+      percent: 0,
+      items: [
+        {
+          collectionItemId: 'a',
+          name: 'A',
+          rarity: Rarity.COMMON,
+          ownedQuantity: 0,
+        },
+      ],
+    };
+    expect(collectionProgressSchema.safeParse(missing).success).toBe(false);
   });
 });

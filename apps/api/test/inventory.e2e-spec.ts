@@ -90,12 +90,13 @@ describe('Inventory (e2e)', () => {
       .set(auth())
       .expect(200);
     expect(progress.body.owned).toBe(1);
-    expect(
-      progress.body.items.find(
-        (i: { collectionItemId: string }) =>
-          i.collectionItemId === collectionItemId,
-      ).ownedQuantity,
-    ).toBe(2);
+    const ownedRow = progress.body.items.find(
+      (i: { collectionItemId: string }) =>
+        i.collectionItemId === collectionItemId,
+    );
+    expect(ownedRow.ownedQuantity).toBe(2);
+    expect(ownedRow.inventoryId).toBe(invId);
+    expect(ownedRow.wishlistId).toBeNull();
 
     const summaries = await request(server)
       .get('/inventory/progress')

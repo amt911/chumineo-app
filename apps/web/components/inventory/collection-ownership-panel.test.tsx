@@ -8,6 +8,11 @@ import * as api from '@/lib/api';
 import { NextIntlClientProvider } from 'next-intl';
 import messages from '@/locales/es.json';
 
+vi.mock('sonner', () => ({
+  toast: { success: vi.fn(), error: vi.fn() },
+}));
+import { toast } from 'sonner';
+
 function wrap(ui: React.ReactNode) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -30,18 +35,37 @@ const progress = {
       name: 'A',
       rarity: Rarity.COMMON,
       ownedQuantity: 1,
+      inventoryId: 'inv-a',
+      wishlistId: null,
     },
     {
       collectionItemId: 'b',
       name: 'B',
       rarity: Rarity.RARE,
       ownedQuantity: 0,
+      inventoryId: null,
+      wishlistId: null,
     },
   ],
 };
 
+function authenticate() {
+  useAuthStore.setState({
+    accessToken: 'tok',
+    user: {
+      id: 'u1',
+      email: 'a@b',
+      username: 'neo',
+      emailVerified: true,
+      avatarUrl: null,
+    },
+    status: 'authenticated',
+  });
+}
+
 describe('CollectionOwnershipPanel', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     useAuthStore.setState({
       accessToken: null,
       user: null,
@@ -55,39 +79,18 @@ describe('CollectionOwnershipPanel', () => {
   });
 
   it('shows owned/missing per item when logged in', async () => {
-    useAuthStore.setState({
-      accessToken: 'tok',
-      user: {
-        id: 'u1',
-        email: 'a@b',
-        username: 'neo',
-        emailVerified: true,
-        avatarUrl: null,
-      },
-      status: 'authenticated',
-    });
+    authenticate();
     vi.spyOn(api, 'fetchCollectionProgress').mockResolvedValue(progress);
     wrap(<CollectionOwnershipPanel slug="s" />);
     await waitFor(() => expect(screen.getByText('A')).toBeInTheDocument());
     expect(screen.getByText(/1\s*\/\s*2/)).toBeInTheDocument();
-    // missing item 'b' shows an "add" affordance
     expect(
       screen.getByRole('button', { name: /tengo.*B/i }),
     ).toBeInTheDocument();
   });
 
-  it('calls addInventoryItem when marking a missing item as owned', async () => {
-    useAuthStore.setState({
-      accessToken: 'tok',
-      user: {
-        id: 'u1',
-        email: 'a@b',
-        username: 'neo',
-        emailVerified: true,
-        avatarUrl: null,
-      },
-      status: 'authenticated',
-    });
+  it('adds a missing item to inventory (with a success toast)', async () => {
+    authenticate();
     vi.spyOn(api, 'fetchCollectionProgress').mockResolvedValue(progress);
     const add = vi.spyOn(api, 'addInventoryItem').mockResolvedValue({
       id: 'inv1',
@@ -105,24 +108,29 @@ describe('CollectionOwnershipPanel', () => {
         'tok',
       ),
     );
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
   });
 
-  it('calls addWishlistItem when clicking Wishlist for a missing item', async () => {
-    useAuthStore.setState({
-      accessToken: 'tok',
-      user: {
-        id: 'u1',
-        email: 'a@b',
-        username: 'neo',
-        emailVerified: true,
-        avatarUrl: null,
-      },
-      status: 'authenticated',
-    });
+  it('removes an owned item from inventory when toggled off', async () => {
+    authenticate();
+    vi.spyOn(api, 'fetchCollectionProgress').mockResolvedValue(progress);
+    const del = vi.spyOn(api, 'deleteInventoryItem').mockResolvedValue();
+    wrap(<CollectionOwnershipPanel slug="s" />);
+    await waitFor(() => screen.getByText('A'));
+    // owned item 'A' offers a "remove from inventory" affordance
+    fireEvent.click(
+      screen.getByRole('button', { name: /quitar.*A.*inventario/i }),
+    );
+    await waitFor(() => expect(del).toHaveBeenCalledWith('inv-a', 'tok'));
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
+  });
+
+  it('adds a missing item to the wishlist', async () => {
+    authenticate();
     vi.spyOn(api, 'fetchCollectionProgress').mockResolvedValue(progress);
     const wish = vi.spyOn(api, 'addWishlistItem').mockResolvedValue({
       id: 'w1',
-      priority: WishlistPriority.HIGH,
+      priority: WishlistPriority.MEDIUM,
       maxPrice: null,
       isPublic: true,
       item: { id: 'b', name: 'B', rarity: Rarity.RARE, imageUrl: null },
@@ -130,7 +138,9 @@ describe('CollectionOwnershipPanel', () => {
     });
     wrap(<CollectionOwnershipPanel slug="s" />);
     await waitFor(() => screen.getByText('B'));
-    fireEvent.click(screen.getByRole('button', { name: /wishlist/i }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /añadir.*B.*wishlist/i }),
+    );
     await waitFor(() =>
       expect(wish).toHaveBeenCalledWith(
         {
@@ -141,5 +151,41 @@ describe('CollectionOwnershipPanel', () => {
         'tok',
       ),
     );
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
+  });
+
+  it('removes a wishlisted item from the wishlist when toggled off', async () => {
+    authenticate();
+    vi.spyOn(api, 'fetchCollectionProgress').mockResolvedValue({
+      ...progress,
+      items: [
+        {
+          collectionItemId: 'b',
+          name: 'B',
+          rarity: Rarity.RARE,
+          ownedQuantity: 0,
+          inventoryId: null,
+          wishlistId: 'wish-b',
+        },
+      ],
+    });
+    const del = vi.spyOn(api, 'deleteWishlistItem').mockResolvedValue();
+    wrap(<CollectionOwnershipPanel slug="s" />);
+    await waitFor(() => screen.getByText('B'));
+    fireEvent.click(
+      screen.getByRole('button', { name: /quitar.*B.*wishlist/i }),
+    );
+    await waitFor(() => expect(del).toHaveBeenCalledWith('wish-b', 'tok'));
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
+  });
+
+  it('shows an error toast when a mutation fails', async () => {
+    authenticate();
+    vi.spyOn(api, 'fetchCollectionProgress').mockResolvedValue(progress);
+    vi.spyOn(api, 'addInventoryItem').mockRejectedValue(new Error('boom'));
+    wrap(<CollectionOwnershipPanel slug="s" />);
+    await waitFor(() => screen.getByText('B'));
+    fireEvent.click(screen.getByRole('button', { name: /tengo.*B/i }));
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
   });
 });
