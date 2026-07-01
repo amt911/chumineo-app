@@ -198,7 +198,10 @@ export class ListingsService {
     return this.toDto(listing);
   }
 
-  async assertOwned(userId: string, id: string): Promise<{ id: string }> {
+  async assertOwned(
+    userId: string,
+    id: string,
+  ): Promise<{ id: string; collectionItemId: string }> {
     const listing = await this.prisma.listing.findFirst({
       where: { id, sellerId: userId },
     });
@@ -213,10 +216,9 @@ export class ListingsService {
   ): Promise<ListingDto> {
     const listing = await this.assertOwned(userId, id);
     if (dto.quantity !== undefined) {
-      const current = await this.prisma.listing.findFirst({ where: { id } });
       const available = await this.availableQuantity(
         userId,
-        current!.collectionItemId,
+        listing.collectionItemId,
         id,
       );
       if (dto.quantity > available) {

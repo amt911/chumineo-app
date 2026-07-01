@@ -22,6 +22,7 @@ import {
 } from '@sobrebox/shared';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import {
   CurrentUser,
   RequestUser,
@@ -48,9 +49,13 @@ export class ListingsController {
     return this.listings.listPublic(query);
   }
 
+  @UseGuards(OptionalJwtAuthGuard)
   @Get(':id')
-  get(@Param('id') id: string): Promise<ListingDto> {
-    return this.listings.getById(id);
+  get(
+    @CurrentUser() user: RequestUser | undefined,
+    @Param('id') id: string,
+  ): Promise<ListingDto> {
+    return this.listings.getById(id, user?.id);
   }
 
   @UseGuards(JwtAuthGuard)
