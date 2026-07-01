@@ -11,6 +11,7 @@
 - **`@sobrebox/shared` se COMPILA** (`tsc` → `dist`, CommonJS) y se consume como JS compilado. **Recompílalo (`pnpm build:shared`) tras editarlo** o `api`/`web`/seed importarán código viejo. Los scripts de test/cobertura (turbo `^build`) y `pnpm db:seed` lo compilan automáticamente.
 - `api` y `shared` son **CommonJS, sin extensiones `.js`** en imports. `web` usa resolución Bundler de Next + `transpilePackages: ['@sobrebox/shared']`.
 - El seed corre con **`tsx`** (no ts-node) para poder importar `@sobrebox/shared`.
+- **`uuid` v12+ es ESM-only** (`"type": "module"`, sin build CJS) → rompe Jest en `apps/api` (CommonJS) con `SyntaxError: Unexpected token 'export'` al importar `uuid/dist-node/index.js`. Usa **`uuid@^11`**, que sigue publicando `exports.node.require` → `dist/cjs/index.js` con sus propios `.d.ts` (no hace falta `@types/uuid`, que además está deprecado desde que uuid trae tipos propios).
 
 ## Prisma
 

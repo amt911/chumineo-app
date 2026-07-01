@@ -98,6 +98,9 @@ importers:
       sharp:
         specifier: ^0.35.2
         version: 0.35.2
+      uuid:
+        specifier: ^11.1.1
+        version: 11.1.1
       zod:
         specifier: ^3.25.76
         version: 3.25.76
@@ -120,6 +123,9 @@ importers:
       '@types/jest':
         specifier: ^29.5.2
         version: 29.5.14
+      '@types/multer':
+        specifier: ^2.1.0
+        version: 2.1.0
       '@types/node':
         specifier: ^20.3.1
         version: 20.19.43
@@ -2573,6 +2579,9 @@ packages:
 
   '@types/ms@2.1.0':
     resolution: {integrity: sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA==}
+
+  '@types/multer@2.1.0':
+    resolution: {integrity: sha512-zYZb0+nJhOHtPpGDb3vqPjwpdeGlGC157VpkqNQL+UU2qwoacoQ7MpsAmUptI/0Oa127X32JzWDqQVEXp2RcIA==}
 
   '@types/node@20.19.43':
     resolution: {integrity: sha512-6oYBAi5ikg4Pl+kGsoYtawUMBT2zZMCvPNF7pVLnHZfd1zf38DRiWn/gT01RYCdUqkv7Fhr+C9ot4/tb+2sVvA==}
@@ -6665,6 +6674,10 @@ packages:
     resolution: {integrity: sha512-pMZTvIkT1d+TFGvDOqodOclx0QWkkgi6Tdoa8gC8ffGAAqz9pzPTZWAybbsHHoED/ztMtkv/VoYTYyShUn81hA==}
     engines: {node: '>= 0.4.0'}
 
+  uuid@11.1.1:
+    resolution: {integrity: sha512-vIYxrBCC/N/K+Js3qSN88go7kIfNPssr/hHCesKCQNAjmgvYS2oqr69kIufEG+O4+PfezOH4EbIeHCfFov8ZgQ==}
+    hasBin: true
+
   v8-compile-cache-lib@3.0.1:
     resolution: {integrity: sha512-wa7YjyUGfNZngI/vtK0UHAN+lgDCxBPCylVXGp0zu59Fz5aiGtNXaq3DhIov063MorB+VfufLh3JlF2KdTK3xg==}
 
@@ -9196,6 +9209,10 @@ snapshots:
   '@types/methods@1.1.4': {}
 
   '@types/ms@2.1.0': {}
+
+  '@types/multer@2.1.0':
+    dependencies:
+      '@types/express': 5.0.6
 
   '@types/node@20.19.43':
     dependencies:
@@ -13950,6 +13967,8 @@ snapshots:
   util-deprecate@1.0.2: {}
 
   utils-merge@1.0.1: {}
+
+  uuid@11.1.1: {}
 
   v8-compile-cache-lib@3.0.1: {}
 
