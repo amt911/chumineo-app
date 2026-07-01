@@ -47,6 +47,7 @@ const mockUser: PublicUserDto = {
   username: 'testuser',
   emailVerified: true,
   avatarUrl: null,
+  country: null,
 };
 
 describe('SiteHeader', () => {

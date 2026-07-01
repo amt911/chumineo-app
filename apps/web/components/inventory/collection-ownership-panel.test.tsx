@@ -58,6 +58,7 @@ function authenticate() {
       username: 'neo',
       emailVerified: true,
       avatarUrl: null,
+      country: null,
     },
     status: 'authenticated',
   });
