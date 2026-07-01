@@ -27,6 +27,13 @@
   (stdin no conectado → cuelga indefinidamente, sin error). Workaround fiable: cargar el env
   a mano y llamar prisma directo: `set -a && source .env && set +a && pnpm --filter
 @sobrebox/api exec prisma migrate dev --name <x>`.
+- **Añadir un campo required (aunque nullable) a un DTO Zod compartido rompe TODOS sus
+  productores, no solo el "obvio".** Al añadir `country` a `publicUserSchema`
+  (`packages/shared`), tanto `UsersService.getAuthUser` como `AuthService.toPublicUser`
+  construyen un `PublicUserDto` de forma independiente — el segundo no se detectó hasta
+  correr la suite completa de `api` (fallo de compilación TS en 3 specs de auth). Al tocar
+  un schema compartido, busca TODOS los `.parse(...)`/objetos tipados como ese DTO antes
+  de dar la tarea por cerrada, no solo el archivo "principal".
 
 ## Frontend (web)
 
