@@ -125,3 +125,9 @@ deploy` → la imagen prod copia todo el `/app` construido (incluye el CLI). Sli
 - **El entorno es podman-compose** (no docker-compose): `docker compose rm` no existe; usa
   `docker compose stop` + `docker rm -f <contenedor>`. El port-forward de podman puede dar
   "connection reset" justo al arrancar — espera unos segundos.
+- **`pnpm db:migrate -- --name <x>` NO forwardea el flag de forma fiable.** El script es
+  `pnpm bootstrap && dotenv -e .env -- pnpm --filter @sobrebox/api exec prisma migrate dev`;
+  los args tras `--` se cuelgan en el prompt interactivo "Enter a name for the new migration"
+  (stdin no conectado → cuelga indefinidamente, sin error). Workaround fiable: cargar el env
+  a mano y llamar prisma directo: `set -a && source .env && set +a && pnpm --filter
+@sobrebox/api exec prisma migrate dev --name <x>`.
