@@ -32,6 +32,7 @@ Auth: `Public` (sin token) · `Optional JWT` (público pero context-aware) · `J
 | DELETE | /wishlist/:id                             | JWT            | owner-only; 404 if not yours                                                                                            |
 | POST   | /marketplace/listings                     | JWT            | create listing from owned inventory item                                                                                |
 | GET    | /marketplace/listings                     | Public         | paginated ACTIVE listings (filters: item, collection, condition, country, q, price)                                     |
+| GET    | /marketplace/listings/mine                | JWT            | owner's own listings across all statuses (route declared before `:id`)                                                  |
 | GET    | /marketplace/listings/:id                 | Optional JWT   | listing detail; non-ACTIVE only visible to the owner                                                                    |
 | PATCH  | /marketplace/listings/:id                 | JWT            | owner-only; 403 if not yours                                                                                            |
 | DELETE | /marketplace/listings/:id                 | JWT            | owner-only; 403 if not yours; also deletes its photos from storage                                                      |
