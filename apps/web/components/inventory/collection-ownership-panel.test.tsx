@@ -104,6 +104,10 @@ describe('CollectionOwnershipPanel', () => {
     expect(
       screen.getByRole('button', { name: /tengo.*B/i }),
     ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Vender' })).toHaveAttribute(
+      'href',
+      '/marketplace/new?itemId=a',
+    );
   });
 
   it('adds a missing item to inventory (with a success toast)', async () => {
