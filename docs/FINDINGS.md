@@ -137,4 +137,10 @@ deploy` → la imagen prod copia todo el `/app` construido (incluye el CLI). Sli
   host del `.env`; los volúmenes anónimos preservan el `node_modules` del contenedor (argon2 musl).
 - **El entorno es podman-compose** (no docker-compose): `docker compose rm` no existe; usa
   `docker compose stop` + `docker rm -f <contenedor>`. El port-forward de podman puede dar
-  "connection reset" justo al arrancar — espera unos segundos.
+  "connection reset" justo al arrancar — espera unos segundos. También: `podman-compose ps`
+  no soporta `-a` (usa `docker compose ps` a secas).
+- **`infra:up`/`infra:up:logs` listan servicios explícitamente** (no hacen `docker compose up`
+  a secas), así que añadir un servicio nuevo a `docker-compose.yml` (p. ej. `sobrebox-rustfs`
+  en Task 7) **no basta** — hay que añadirlo también a esos scripts en `package.json` o
+  `pnpm infra:up` nunca lo arranca, y cualquier consumidor eager (`StorageModule` `@Global()`
+  con `S3ClientProvider`) sigue rompiendo `test:e2e` aunque el compose ya lo declare.
