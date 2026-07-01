@@ -32,6 +32,7 @@ type DbUser = {
   username: string;
   emailVerified: boolean;
   avatarUrl: string | null;
+  country: string | null;
   passwordHash: string;
 };
 
@@ -48,7 +49,7 @@ export class AuthService {
   toPublicUser(
     u: Pick<
       DbUser,
-      'id' | 'email' | 'username' | 'emailVerified' | 'avatarUrl'
+      'id' | 'email' | 'username' | 'emailVerified' | 'avatarUrl' | 'country'
     >,
   ): PublicUserDto {
     return {
@@ -57,6 +58,7 @@ export class AuthService {
       username: u.username,
       emailVerified: u.emailVerified,
       avatarUrl: u.avatarUrl,
+      country: u.country,
     };
   }
 
