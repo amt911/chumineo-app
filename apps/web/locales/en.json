@@ -39,6 +39,14 @@
     "toastError": "Something went wrong. Please try again.",
     "complete": "Collection complete!"
   },
+  "Marketplace": {
+    "title": "Marketplace",
+    "empty": "No listings yet.",
+    "sortRecent": "Most recent",
+    "sortPriceAsc": "Price: low to high",
+    "sortPriceDesc": "Price: high to low",
+    "sortBestRated": "Best rated (coming soon)"
+  },
   "Errors": {
     "EMAIL_NOT_VERIFIED": "Please verify your email before logging in.",
     "INVALID_CREDENTIALS": "Wrong email or password.",
