@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import {
   ListingStatus,
   MatchesResponseDto,
-  MatchItemDto,
   MatchListingDto,
   WishlistPriority,
   matchListingSchema,
@@ -11,7 +10,10 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 
-const PRIORITY_RANK: Record<WishlistPriority, number> = {
+// Keyed by the shared enum's members but typed loosely so the raw Prisma
+// `priority` string (validated later by `matchesResponseSchema.parse`) can
+// index it directly without an intermediate cast.
+const PRIORITY_RANK: Record<string, number> = {
   [WishlistPriority.HIGH]: 0,
   [WishlistPriority.MEDIUM]: 1,
   [WishlistPriority.LOW]: 2,
@@ -105,7 +107,11 @@ export class MatchesService {
       else byItem.set(l.collectionItemId, [l]);
     }
 
-    const matches: MatchItemDto[] = [];
+    // No intermediate `MatchItemDto[]` annotation here (mirrors
+    // WishlistService#toDto): the raw Prisma fields flow straight into the
+    // pushed object, and `matchesResponseSchema.parse(matches)` below is the
+    // single point that validates/narrows enum fields at runtime.
+    const matches = [];
     for (const w of wishlist) {
       const rows = byItem.get(w.collectionItemId);
       if (!rows || rows.length === 0) continue;
@@ -115,12 +121,12 @@ export class MatchesService {
       );
       matches.push({
         wishlistItemId: w.id,
-        priority: w.priority as WishlistPriority,
+        priority: w.priority,
         maxPrice: maxPrice != null ? money(maxPrice) : null,
         item: {
           id: w.collectionItem.id,
           name: w.collectionItem.name,
-          rarity: w.collectionItem.rarity as MatchItemDto['item']['rarity'],
+          rarity: w.collectionItem.rarity,
           imageUrl: w.collectionItem.imageUrl,
         },
         collection: w.collectionItem.collection,

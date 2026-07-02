@@ -127,7 +127,7 @@ describe('WishlistList badge', () => {
     ]);
     wrap(<WishlistList />);
     await waitFor(() =>
-      expect(screen.getByText(/2 en venta/)).toBeInTheDocument(),
+      expect(screen.getByText(/\b2 en venta\b/)).toBeInTheDocument(),
     );
     expect(screen.getByText('1 dentro de presupuesto')).toBeInTheDocument();
   });
@@ -139,6 +139,38 @@ describe('WishlistList badge', () => {
       expect(screen.getByText('Umbreon')).toBeInTheDocument(),
     );
     expect(screen.queryByText(/en venta/)).not.toBeInTheDocument();
+  });
+
+  it('shows the badge only on the matched row when the wishlist has multiple items', async () => {
+    const espeon = {
+      id: 'w2',
+      priority: WishlistPriority.MEDIUM,
+      maxPrice: null,
+      isPublic: true,
+      item: { id: 'ci2', name: 'Espeon', rarity: Rarity.RARE, imageUrl: null },
+      collection: { slug: 's2', name: 'N2' },
+    };
+    vi.spyOn(api, 'fetchWishlist').mockResolvedValue([items[0], espeon]);
+    vi.spyOn(api, 'fetchMatches').mockResolvedValue([
+      {
+        wishlistItemId: 'w1',
+        priority: WishlistPriority.HIGH,
+        maxPrice: '80.00',
+        item: items[0].item,
+        collection: items[0].collection,
+        listingCount: 1,
+        inBudgetCount: 0,
+        cheapestPrice: '38.00',
+        listings: [],
+      },
+    ]);
+    wrap(<WishlistList />);
+    await waitFor(() => expect(screen.getByText('Espeon')).toBeInTheDocument());
+
+    expect(screen.getByText(/\b1 en venta\b/)).toBeInTheDocument();
+
+    const espeonRow = screen.getByText('Espeon').closest('li');
+    expect(espeonRow?.textContent).not.toMatch(/en venta/);
   });
 
   it('shows a header link to the matches feed when any match exists', async () => {
