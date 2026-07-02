@@ -12,11 +12,14 @@ import {
 } from '@nestjs/common';
 import {
   CreateListingDto,
+  ListingAvailabilityDto,
+  ListingAvailabilityQueryDto,
   ListingDto,
   ListingQueryDto,
   ListingsPageDto,
   UpdateListingDto,
   createListingSchema,
+  listingAvailabilityQuerySchema,
   listingQuerySchema,
   updateListingSchema,
 } from '@sobrebox/shared';
@@ -53,6 +56,17 @@ export class ListingsController {
   @Get('mine')
   listMine(@CurrentUser() user: RequestUser): Promise<ListingsPageDto> {
     return this.listings.listPublic({ page: 1 } as never, user.id);
+  }
+
+  // Static path — declared before `:id` so it isn't captured as a listing id.
+  @UseGuards(JwtAuthGuard)
+  @Get('availability')
+  availability(
+    @CurrentUser() user: RequestUser,
+    @Query(new ZodValidationPipe(listingAvailabilityQuerySchema))
+    query: ListingAvailabilityQueryDto,
+  ): Promise<ListingAvailabilityDto> {
+    return this.listings.availability(user.id, query.collectionItemId);
   }
 
   @UseGuards(OptionalJwtAuthGuard)

@@ -12,6 +12,12 @@ describe('errorMessageKey', () => {
       'Errors.INVALID_CREDENTIALS',
     );
   });
+  it('maps marketplace codes', () => {
+    expect(errorMessageKey('INSUFFICIENT_STOCK')).toBe(
+      'Errors.INSUFFICIENT_STOCK',
+    );
+    expect(errorMessageKey('UNITS_RESERVED')).toBe('Errors.UNITS_RESERVED');
+  });
   it('falls back to UNKNOWN for an unknown message', () => {
     expect(errorMessageKey('Request failed: 500')).toBe('Errors.UNKNOWN');
   });

@@ -14,6 +14,7 @@ import {
   fetchCollectionProgress,
   updateInventoryItem,
 } from '@/lib/api';
+import { errorMessageKey } from '@/lib/error-messages';
 import { useAuthStore } from '@/lib/auth-store';
 import { WishlistPriority } from '@sobrebox/shared';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,6 +23,7 @@ import { cn } from '@/lib/utils';
 
 export function CollectionOwnershipPanel({ slug }: { slug: string }) {
   const t = useTranslations('Collections');
+  const tRoot = useTranslations();
   const status = useAuthStore((s) => s.status);
   const accessToken = useAuthStore((s) => s.accessToken);
   const queryClient = useQueryClient();
@@ -35,7 +37,10 @@ export function CollectionOwnershipPanel({ slug }: { slug: string }) {
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ['inventory', 'progress'] });
 
-  const onError = () => toast.error(t('toastError'));
+  const onError = (err: unknown) =>
+    toast.error(
+      tRoot(errorMessageKey(err instanceof Error ? err.message : '')),
+    );
 
   const addOwned = useMutation({
     mutationFn: (v: { collectionItemId: string; name: string }) =>
