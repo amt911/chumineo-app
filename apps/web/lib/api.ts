@@ -25,6 +25,7 @@ import type {
   UpdateListingDto,
   ListingAvailabilityDto,
   UpdateProfileDto,
+  MatchesResponseDto,
 } from '@sobrebox/shared';
 import { useAuthStore } from '@/lib/auth-store';
 import {
@@ -40,6 +41,7 @@ import {
   listingAvailabilitySchema,
   listingPhotoSchema,
   publicUserSchema,
+  matchesResponseSchema,
 } from '@sobrebox/shared';
 
 // Server components (RSC) fetch the API directly on the host (absolute URL).
@@ -382,6 +384,15 @@ export async function deleteListingPhoto(
     `/marketplace/listings/${listingId}/photos/${photoId}`,
     accessToken,
     { method: 'DELETE' },
+  );
+}
+
+// --- matches (wishlist x marketplace) ---
+export async function fetchMatches(
+  accessToken: string,
+): Promise<MatchesResponseDto> {
+  return matchesResponseSchema.parse(
+    await authedJson('/marketplace/matches', accessToken),
   );
 }
 

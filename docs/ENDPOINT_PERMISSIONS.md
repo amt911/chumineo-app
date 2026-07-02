@@ -39,3 +39,4 @@ Auth: `Public` (sin token) · `Optional JWT` (público pero context-aware) · `J
 | DELETE | /marketplace/listings/:id                 | JWT            | owner-only; 403 if not yours; also deletes its photos from storage                                                      |
 | POST   | /marketplace/listings/:id/photos          | JWT            | owner-only; multipart `files` (max 5 total/listing, jpeg/png/webp, 2MB/file), compressed to WebP and uploaded to RustFS |
 | DELETE | /marketplace/listings/:id/photos/:photoId | JWT            | owner-only; 403 if not yours; no-op (204) if the photo doesn't exist                                                    |
+| GET    | /marketplace/matches                      | JWT            | owner-scoped; wishlist items with active listings from other sellers (in-budget flagged)                                |

@@ -21,7 +21,8 @@
     "loginPrompt": "Log in to see your wishlist.",
     "empty": "Your wishlist is empty.",
     "remove": "Remove",
-    "maxPrice": "max {price}€"
+    "maxPrice": "max {price}€",
+    "matchesLink": "See what's on sale"
   },
   "Collections": {
     "progressTitle": "Your progress",
@@ -72,6 +73,16 @@
     "photoLimit": "Maximum 5 photos",
     "photosUploaded": "Photos uploaded",
     "photoUploadError": "Couldn't upload photos"
+  },
+  "Matches": {
+    "title": "Your wanted items on sale",
+    "loginPrompt": "Log in to see your matches.",
+    "empty": "None of your wishlist items are on sale right now.",
+    "browse": "Browse the marketplace",
+    "inBudget": "{count} within budget",
+    "onSale": "{count} on sale",
+    "maxPrice": "max {price}€",
+    "viewListing": "View listing"
   },
   "Profile": {
     "country": "Country",
