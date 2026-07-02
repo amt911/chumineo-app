@@ -17,6 +17,13 @@ import type {
   AddWishlistItemDto,
   UpdateWishlistItemDto,
   WishlistItemDto,
+  ListingDto,
+  ListingQueryDto,
+  ListingsPageDto,
+  ListingPhotoDto,
+  CreateListingDto,
+  UpdateListingDto,
+  UpdateProfileDto,
 } from '@sobrebox/shared';
 import { useAuthStore } from '@/lib/auth-store';
 import {
@@ -27,6 +34,10 @@ import {
   collectionProgressSummarySchema,
   collectionProgressSchema,
   wishlistItemSchema,
+  listingSchema,
+  listingsPageSchema,
+  listingPhotoSchema,
+  publicUserSchema,
 } from '@sobrebox/shared';
 
 // Server components (RSC) fetch the API directly on the host (absolute URL).
@@ -38,7 +49,7 @@ const API_URL =
     ? (process.env.API_INTERNAL_URL ?? 'http://localhost:3000')
     : '/api';
 
-function buildQuery(query: Partial<CollectionsQueryDto>): string {
+function buildQuery(query: Record<string, unknown>): string {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query)) {
     if (value !== undefined && value !== null && value !== '') {
@@ -267,4 +278,108 @@ export async function deleteWishlistItem(
   accessToken: string,
 ): Promise<void> {
   await authedJson(`/wishlist/${id}`, accessToken, { method: 'DELETE' });
+}
+
+// --- marketplace ---
+export async function fetchListings(
+  query: Partial<ListingQueryDto>,
+): Promise<ListingsPageDto> {
+  const res = await fetch(
+    `${API_URL}/marketplace/listings${buildQuery(query)}`,
+    { cache: 'no-store' },
+  );
+  if (!res.ok) throw new Error(`Failed to fetch listings: ${res.status}`);
+  return listingsPageSchema.parse(await res.json());
+}
+
+export async function fetchMyListings(
+  accessToken: string,
+): Promise<ListingsPageDto> {
+  return listingsPageSchema.parse(
+    await authedJson('/marketplace/listings/mine', accessToken),
+  );
+}
+
+export async function fetchListing(id: string): Promise<ListingDto> {
+  const res = await fetch(`${API_URL}/marketplace/listings/${id}`, {
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to fetch listing: ${res.status}`);
+  return listingSchema.parse(await res.json());
+}
+
+export async function createListing(
+  dto: CreateListingDto,
+  accessToken: string,
+): Promise<ListingDto> {
+  return listingSchema.parse(
+    await authedJson('/marketplace/listings', accessToken, {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    }),
+  );
+}
+
+export async function updateListing(
+  id: string,
+  dto: UpdateListingDto,
+  accessToken: string,
+): Promise<ListingDto> {
+  return listingSchema.parse(
+    await authedJson(`/marketplace/listings/${id}`, accessToken, {
+      method: 'PATCH',
+      body: JSON.stringify(dto),
+    }),
+  );
+}
+
+export async function deleteListing(
+  id: string,
+  accessToken: string,
+): Promise<void> {
+  await authedJson(`/marketplace/listings/${id}`, accessToken, {
+    method: 'DELETE',
+  });
+}
+
+export async function uploadListingPhotos(
+  id: string,
+  files: File[],
+  accessToken: string,
+): Promise<ListingPhotoDto[]> {
+  const form = new FormData();
+  files.forEach((f) => form.append('files', f));
+  const res = await fetch(`${API_URL}/marketplace/listings/${id}/photos`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    credentials: 'include',
+    body: form,
+  });
+  if (!res.ok) throw new Error(`Failed to upload photos: ${res.status}`);
+  return listingPhotoSchema.array().parse(await res.json());
+}
+
+export async function deleteListingPhoto(
+  listingId: string,
+  photoId: string,
+  accessToken: string,
+): Promise<void> {
+  await authedJson(
+    `/marketplace/listings/${listingId}/photos/${photoId}`,
+    accessToken,
+    { method: 'DELETE' },
+  );
+}
+
+// --- profile ---
+export async function updateProfile(
+  dto: UpdateProfileDto,
+  accessToken: string,
+): Promise<PublicUserDto> {
+  return publicUserSchema.parse(
+    await authedJson('/users/me', accessToken, {
+      method: 'PATCH',
+      body: JSON.stringify(dto),
+    }),
+  );
 }

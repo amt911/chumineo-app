@@ -5,6 +5,7 @@ import {
   Rarity as PrismaRarity,
   Condition as PrismaCondition,
   WishlistPriority as PrismaWishlistPriority,
+  ListingStatus as PrismaListingStatus,
 } from '@prisma/client';
 import {
   CollectionCategory,
@@ -13,6 +14,7 @@ import {
   Rarity,
   Condition,
   WishlistPriority,
+  ListingStatus,
 } from '@sobrebox/shared';
 
 const sorted = (o: Record<string, string>) => Object.values(o).sort();
@@ -30,4 +32,6 @@ describe('enum parity (prisma <-> shared)', () => {
     expect(sorted(Condition)).toEqual(sorted(PrismaCondition)));
   it('WishlistPriority matches', () =>
     expect(sorted(WishlistPriority)).toEqual(sorted(PrismaWishlistPriority)));
+  it('ListingStatus matches', () =>
+    expect(sorted(ListingStatus)).toEqual(sorted(PrismaListingStatus)));
 });

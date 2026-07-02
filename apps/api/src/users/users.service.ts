@@ -4,6 +4,7 @@ import {
   publicProfileSchema,
   PublicUserDto,
   publicUserSchema,
+  UpdateProfileDto,
 } from '@sobrebox/shared';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -35,6 +36,7 @@ export class UsersService {
       username: user.username,
       avatarUrl: user.avatarUrl,
       memberSince: user.createdAt.toISOString(),
+      country: user.country,
     });
   }
 
@@ -47,6 +49,27 @@ export class UsersService {
       username: user.username,
       emailVerified: user.emailVerified,
       avatarUrl: user.avatarUrl,
+      country: user.country,
+    });
+  }
+
+  async updateProfile(
+    id: string,
+    dto: UpdateProfileDto,
+  ): Promise<PublicUserDto> {
+    const existing = await this.prisma.user.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('User not found');
+    const user = await this.prisma.user.update({
+      where: { id },
+      data: { country: dto.country },
+    });
+    return publicUserSchema.parse({
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      emailVerified: user.emailVerified,
+      avatarUrl: user.avatarUrl,
+      country: user.country,
     });
   }
 }

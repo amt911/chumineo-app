@@ -1,15 +1,18 @@
 'use client';
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { AnimatePresence, motion } from 'motion/react';
 import { toast } from 'sonner';
-import { Check, Heart, Plus, Trophy, X } from 'lucide-react';
+import { Check, Heart, Minus, Plus, Trash2, Trophy, X } from 'lucide-react';
+import { Link } from '@/i18n/navigation';
 import {
   addInventoryItem,
   addWishlistItem,
   deleteInventoryItem,
   deleteWishlistItem,
   fetchCollectionProgress,
+  updateInventoryItem,
 } from '@/lib/api';
 import { useAuthStore } from '@/lib/auth-store';
 import { WishlistPriority } from '@sobrebox/shared';
@@ -43,6 +46,20 @@ export function CollectionOwnershipPanel({ slug }: { slug: string }) {
     onSuccess: (_res, v) => {
       invalidate();
       toast.success(t('toastAdded', { name: v.name }));
+    },
+    onError,
+  });
+
+  const updateOwned = useMutation({
+    mutationFn: (v: { id: string; quantity: number; name: string }) =>
+      updateInventoryItem(
+        v.id,
+        { quantity: v.quantity },
+        accessToken as string,
+      ),
+    onSuccess: (_res, v) => {
+      invalidate();
+      toast.success(t('toastUpdated', { name: v.name }));
     },
     onError,
   });
@@ -89,6 +106,7 @@ export function CollectionOwnershipPanel({ slug }: { slug: string }) {
 
   const busy =
     addOwned.isPending ||
+    updateOwned.isPending ||
     removeOwned.isPending ||
     addWish.isPending ||
     removeWish.isPending;
@@ -176,11 +194,7 @@ export function CollectionOwnershipPanel({ slug }: { slug: string }) {
                       )}
                     </motion.span>
                     <span>{it.name}</span>
-                    {owned ? (
-                      <span className="text-xs text-muted-foreground tabular-nums">
-                        ×{it.ownedQuantity}
-                      </span>
-                    ) : (
+                    {!owned && (
                       <span className="text-xs text-muted-foreground">
                         {t('missing')}
                       </span>
@@ -190,21 +204,45 @@ export function CollectionOwnershipPanel({ slug }: { slug: string }) {
                   <span className="flex items-center gap-1.5">
                     {owned ? (
                       <>
-                        <Button
-                          type="button"
-                          size="xs"
-                          variant="ghost"
-                          disabled={busy}
-                          aria-label={t('addOne', { name: it.name })}
-                          onClick={() =>
-                            addOwned.mutate({
-                              collectionItemId: it.collectionItemId,
+                        <QuantityStepper
+                          name={it.name}
+                          quantity={it.ownedQuantity}
+                          busy={busy}
+                          onIncrement={() =>
+                            updateOwned.mutate({
+                              id: it.inventoryId as string,
+                              quantity: it.ownedQuantity + 1,
                               name: it.name,
                             })
                           }
-                        >
-                          <Plus /> 1
-                        </Button>
+                          onDecrement={() =>
+                            it.ownedQuantity > 1
+                              ? updateOwned.mutate({
+                                  id: it.inventoryId as string,
+                                  quantity: it.ownedQuantity - 1,
+                                  name: it.name,
+                                })
+                              : removeOwned.mutate({
+                                  id: it.inventoryId as string,
+                                  name: it.name,
+                                })
+                          }
+                          onCommit={(value) => {
+                            if (value === it.ownedQuantity) return;
+                            if (value >= 1) {
+                              updateOwned.mutate({
+                                id: it.inventoryId as string,
+                                quantity: value,
+                                name: it.name,
+                              });
+                            } else {
+                              removeOwned.mutate({
+                                id: it.inventoryId as string,
+                                name: it.name,
+                              });
+                            }
+                          }}
+                        />
                         <Button
                           type="button"
                           size="xs"
@@ -218,8 +256,14 @@ export function CollectionOwnershipPanel({ slug }: { slug: string }) {
                             })
                           }
                         >
-                          <X /> {t('owned')}
+                          <Trash2 />
                         </Button>
+                        <Link
+                          href={`/marketplace/new?itemId=${it.collectionItemId}`}
+                          className="text-sm text-primary hover:underline"
+                        >
+                          {t('sell')}
+                        </Link>
                       </>
                     ) : (
                       <>
@@ -273,5 +317,84 @@ export function CollectionOwnershipPanel({ slug }: { slug: string }) {
         </ul>
       </CardContent>
     </Card>
+  );
+}
+
+function QuantityStepper({
+  name,
+  quantity,
+  busy,
+  onIncrement,
+  onDecrement,
+  onCommit,
+}: {
+  name: string;
+  quantity: number;
+  busy: boolean;
+  onIncrement: () => void;
+  onDecrement: () => void;
+  onCommit: (value: number) => void;
+}) {
+  const t = useTranslations('Collections');
+  const [draft, setDraft] = useState(String(quantity));
+
+  // Re-sync the field whenever the source quantity changes (after a mutation
+  // settles) via the render-time "adjust state on prop change" pattern — no
+  // effect, so it doesn't trigger cascading renders.
+  const [prevQuantity, setPrevQuantity] = useState(quantity);
+  if (quantity !== prevQuantity) {
+    setPrevQuantity(quantity);
+    setDraft(String(quantity));
+  }
+
+  const commit = () => {
+    const parsed = Number.parseInt(draft, 10);
+    if (Number.isNaN(parsed)) {
+      setDraft(String(quantity));
+      return;
+    }
+    onCommit(parsed);
+  };
+
+  return (
+    <span className="flex items-center gap-1">
+      <Button
+        type="button"
+        size="xs"
+        variant="ghost"
+        disabled={busy}
+        aria-label={t('removeOne', { name })}
+        onClick={onDecrement}
+      >
+        <Minus />
+      </Button>
+      <input
+        type="number"
+        min={0}
+        inputMode="numeric"
+        aria-label={t('quantityLabel', { name })}
+        className="w-12 rounded border bg-transparent px-1 py-0.5 text-center text-sm tabular-nums"
+        value={draft}
+        disabled={busy}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            commit();
+          }
+        }}
+        onBlur={commit}
+      />
+      <Button
+        type="button"
+        size="xs"
+        variant="ghost"
+        disabled={busy}
+        aria-label={t('addOne', { name })}
+        onClick={onIncrement}
+      >
+        <Plus />
+      </Button>
+    </span>
   );
 }

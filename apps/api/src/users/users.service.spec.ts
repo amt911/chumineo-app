@@ -35,12 +35,14 @@ describe('UsersService', () => {
       avatarUrl: null,
       createdAt: created,
       email: 'secret@b.com',
+      country: 'ES',
     });
     const profile = await service.getPublicProfile('neo');
     expect(profile).toEqual({
       username: 'neo',
       avatarUrl: null,
       memberSince: created.toISOString(),
+      country: 'ES',
     });
     expect(profile).not.toHaveProperty('email');
   });
@@ -59,6 +61,7 @@ describe('UsersService', () => {
       username: 'alice',
       emailVerified: true,
       avatarUrl: null,
+      country: 'ES',
       createdAt: new Date(),
       passwordHash: 'secret-hash',
     };
@@ -72,6 +75,7 @@ describe('UsersService', () => {
         username: 'alice',
         emailVerified: true,
         avatarUrl: null,
+        country: 'ES',
       });
     });
 
@@ -87,6 +91,41 @@ describe('UsersService', () => {
       await expect(service.getAuthUser('ghost-id')).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+});
+
+describe('UsersService.updateProfile', () => {
+  function makePrisma() {
+    return { user: { findUnique: jest.fn(), update: jest.fn() } };
+  }
+
+  it('404s when the user does not exist', async () => {
+    const prisma = makePrisma();
+    prisma.user.findUnique.mockResolvedValue(null);
+    const service = new UsersService(prisma as never);
+    await expect(
+      service.updateProfile('missing', { country: 'ES' }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('updates the country and returns a mapped DTO', async () => {
+    const prisma = makePrisma();
+    prisma.user.findUnique.mockResolvedValue({ id: 'u1' });
+    prisma.user.update.mockResolvedValue({
+      id: 'u1',
+      email: 'a@b.com',
+      username: 'ash',
+      emailVerified: true,
+      avatarUrl: null,
+      country: 'ES',
+    });
+    const service = new UsersService(prisma as never);
+    const dto = await service.updateProfile('u1', { country: 'ES' });
+    expect(dto.country).toBe('ES');
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: 'u1' },
+      data: { country: 'ES' },
     });
   });
 });

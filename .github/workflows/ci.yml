@@ -39,6 +39,20 @@ jobs:
         ports:
           - 1025:1025
           - 8025:8025
+      # RustFS (S3-compatible) is where the storage module's S3BucketInitializer
+      # ensures its bucket on app boot. The e2e suite boots the full AppModule, so
+      # without it every e2e spec fails with ECONNREFUSED against S3_ENDPOINT
+      # (localhost:9000, from .env.example). Keys must match .env.example's
+      # S3_ACCESS_KEY / S3_SECRET_KEY. No command needed — the image starts its
+      # server from RUSTFS_VOLUMES (same as docker-compose's sobrebox-rustfs).
+      rustfs:
+        image: rustfs/rustfs
+        env:
+          RUSTFS_ACCESS_KEY: sobrebox
+          RUSTFS_SECRET_KEY: sobrebox-dev-secret
+          RUSTFS_VOLUMES: /data
+        ports:
+          - 9000:9000
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

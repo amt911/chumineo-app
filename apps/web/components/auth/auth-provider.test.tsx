@@ -10,6 +10,7 @@ const user = {
   username: 'neo',
   emailVerified: true,
   avatarUrl: null,
+  country: null,
 };
 
 describe('AuthProvider', () => {

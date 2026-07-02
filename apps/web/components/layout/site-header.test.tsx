@@ -47,6 +47,7 @@ const mockUser: PublicUserDto = {
   username: 'testuser',
   emailVerified: true,
   avatarUrl: null,
+  country: null,
 };
 
 describe('SiteHeader', () => {
@@ -66,21 +67,25 @@ describe('SiteHeader', () => {
     ).toBeInTheDocument();
   });
 
-  it('always shows the collections link and the locale switcher', () => {
+  it('always shows the collections and marketplace links and the locale switcher', () => {
     renderHeader();
     expect(
       screen.getByRole('link', { name: /colecciones/i }),
     ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /mercado/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'EN' })).toBeInTheDocument();
   });
 
-  it('hides inventory/wishlist nav when unauthenticated', () => {
+  it('hides inventory/wishlist/my-listings nav when unauthenticated', () => {
     renderHeader();
     expect(
       screen.queryByRole('link', { name: /inventario/i }),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('link', { name: /wishlist/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: /mis anuncios/i }),
     ).not.toBeInTheDocument();
   });
 
@@ -108,6 +113,9 @@ describe('SiteHeader', () => {
       screen.getByRole('link', { name: /inventario/i }),
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /wishlist/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /mis anuncios/i }),
+    ).toBeInTheDocument();
   });
 
   it('clears session on logout', async () => {

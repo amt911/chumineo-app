@@ -5,8 +5,10 @@
     "register": "Crear cuenta",
     "logout": "Salir",
     "collections": "Colecciones",
+    "marketplace": "Mercado",
     "inventory": "Inventario",
-    "wishlist": "Wishlist"
+    "wishlist": "Wishlist",
+    "myListings": "Mis anuncios"
   },
   "Inventory": {
     "title": "Mi inventario",
@@ -30,6 +32,9 @@
     "missing": "(te falta)",
     "wishlist": "Wishlist",
     "removeOwned": "Quitar {name} del inventario",
+    "removeOne": "Quitar uno de {name}",
+    "quantityLabel": "Cantidad de {name}",
+    "toastUpdated": "Cantidad de {name} actualizada",
     "addWishlist": "Añadir {name} a la wishlist",
     "removeWishlist": "Quitar {name} de la wishlist",
     "toastAdded": "{name} añadido a tu inventario",
@@ -37,7 +42,33 @@
     "toastWishAdded": "{name} añadido a tu wishlist",
     "toastWishRemoved": "{name} quitado de tu wishlist",
     "toastError": "Algo salió mal. Inténtalo de nuevo.",
-    "complete": "¡Colección completa!"
+    "complete": "¡Colección completa!",
+    "sell": "Vender"
+  },
+  "Marketplace": {
+    "title": "Mercado",
+    "empty": "Todavía no hay anuncios.",
+    "sortRecent": "Más reciente",
+    "sortPriceAsc": "Precio: menor a mayor",
+    "sortPriceDesc": "Precio: mayor a menor",
+    "sortBestRated": "Mejor valorado (próximamente)",
+    "offerSoon": "Ofertas próximamente",
+    "createTitle": "Vender un ítem",
+    "quantity": "Cantidad",
+    "condition": "Condición",
+    "price": "Precio",
+    "description": "Descripción",
+    "submit": "Publicar anuncio",
+    "toastCreated": "Anuncio publicado",
+    "mineEmpty": "No tienes anuncios.",
+    "pause": "Pausar / Reactivar",
+    "delete": "Eliminar",
+    "toastError": "Algo salió mal. Inténtalo de nuevo."
+  },
+  "Profile": {
+    "country": "País",
+    "save": "Guardar",
+    "toastSaved": "Guardado"
   },
   "Errors": {
     "EMAIL_NOT_VERIFIED": "Verifica tu correo antes de iniciar sesión.",

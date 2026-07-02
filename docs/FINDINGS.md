@@ -11,6 +11,8 @@
 - **`@sobrebox/shared` se COMPILA** (`tsc` → `dist`, CommonJS) y se consume como JS compilado. **Recompílalo (`pnpm build:shared`) tras editarlo** o `api`/`web`/seed importarán código viejo. Los scripts de test/cobertura (turbo `^build`) y `pnpm db:seed` lo compilan automáticamente.
 - `api` y `shared` son **CommonJS, sin extensiones `.js`** en imports. `web` usa resolución Bundler de Next + `transpilePackages: ['@sobrebox/shared']`.
 - El seed corre con **`tsx`** (no ts-node) para poder importar `@sobrebox/shared`.
+- **`uuid` v12+ es ESM-only** (`"type": "module"`, sin build CJS) → rompe Jest en `apps/api` (CommonJS) con `SyntaxError: Unexpected token 'export'` al importar `uuid/dist-node/index.js`. Usa **`uuid@^11`**, que sigue publicando `exports.node.require` → `dist/cjs/index.js` con sus propios `.d.ts` (no hace falta `@types/uuid`, que además está deprecado desde que uuid trae tipos propios).
+- **ESLint 9 flat config resuelve un único `eslint.config.mjs`** desde `cwd` (no hace cascada por directorio como `.eslintrc`). `lint-staged` desde la raíz usa siempre el config raíz, aunque el archivo esté en `apps/web`/`apps/api` (cada uno con su propio config Next/Nest-aware) → rompe con reglas como `@next/next/no-img-element` ("Definition for rule ... was not found"). Fix: cada paquete con su propio flat config necesita su propio bloque `lint-staged` en su `package.json`, así lint-staged lo corre con `cwd` dentro de ese paquete y resuelve el config correcto.
 
 ## Prisma
 
@@ -21,6 +23,19 @@
 - Los scripts `pnpm db:*` y `pnpm test:e2e` cargan el `.env` raíz con `dotenv-cli`, y `docker compose` lee `.env` solo. Corriendo el CLI de Prisma a pelo (sin los scripts), exporta antes: `set -a && . ./.env && set +a` (o `dotenv -e .env -- prisma …`).
 - Los campos `Decimal` de Prisma (`officialPullRate`, `price`) **serializan como STRING** sobre HTTP — modélalos como `z.string()` (o coerce) en los DTOs de shared, nunca `number`.
 - Enums Prisma (schema) y enums TS (shared) están **duplicados a propósito** (Prisma no referencia enums TS). `apps/api/src/catalog/enum-parity.spec.ts` falla si divergen.
+- **`pnpm db:migrate -- --name <x>` NO forwardea el flag de forma fiable.** El script es
+  `pnpm bootstrap && dotenv -e .env -- pnpm --filter @sobrebox/api exec prisma migrate dev`;
+  los args tras `--` se cuelgan en el prompt interactivo "Enter a name for the new migration"
+  (stdin no conectado → cuelga indefinidamente, sin error). Workaround fiable: cargar el env
+  a mano y llamar prisma directo: `set -a && source .env && set +a && pnpm --filter
+@sobrebox/api exec prisma migrate dev --name <x>`.
+- **Añadir un campo required (aunque nullable) a un DTO Zod compartido rompe TODOS sus
+  productores, no solo el "obvio".** Al añadir `country` a `publicUserSchema`
+  (`packages/shared`), tanto `UsersService.getAuthUser` como `AuthService.toPublicUser`
+  construyen un `PublicUserDto` de forma independiente — el segundo no se detectó hasta
+  correr la suite completa de `api` (fallo de compilación TS en 3 specs de auth). Al tocar
+  un schema compartido, busca TODOS los `.parse(...)`/objetos tipados como ese DTO antes
+  de dar la tarea por cerrada, no solo el archivo "principal".
 
 ## Frontend (web)
 
@@ -98,6 +113,40 @@
   `docker compose up -d --build --renew-anon-volumes --force-recreate sobrebox-api sobrebox-web`.
   (El mismo gotcha del volumen anónimo afecta al cliente Prisma generado — regenéralo dentro
   del contenedor.)
+- **Docker dev + Next "compilando eternamente":** el dev container `sobrebox-web`
+  bind-montea `.:/app`, así que `apps/web/.next` (caché de Turbopack) quedaba **compartido
+  con el host**. Si el host tiene un `.next` de otra corrida (`next dev`/`next build`, distinto
+  contenido/versión), el Turbopack del contenedor reconcilia esa caché ajena durante 30s+ por
+  ruta (parece que se cuelga; medido: `/marketplace/mine` 29.9s con `.next` sucio → 0.68s
+  limpio). Fix: (1) volumen anónimo `- /app/apps/web/.next` en compose para aislar el `.next`
+  del contenedor del host (mismo patrón que `node_modules`); (2) `RUN rm -rf .next` en el stage
+  `dev` del Dockerfile para que el volumen anónimo se siembre **vacío** (si no, se sembraría con
+  el `next build` de prod del stage `build`). No se puede `rm` en el `CMD` en runtime: el dir es
+  el mountpoint del volumen → `Resource busy`; por eso se borra en build time. La caché dev
+  persiste entre reinicios (mismo volumen anónimo).
+
+## Marketplace / storage
+
+- **Coverage exclusions (`apps/api/package.json` → `jest.coveragePathIgnorePatterns`) para
+  bootstrap/infra puro**, análogas a `main.ts`/`*.module.ts`/`prisma.service.ts`:
+  `storage/s3-client.provider.ts` (DI factory que solo lee env vars y construye un `S3Client`,
+  sin ramas de negocio), `storage/s3-bucket-initializer.ts` (`OnModuleInit` que crea/verifica
+  el bucket de RustFS al arrancar — ya cubierto end-to-end por el round-trip real de RustFS en
+  `test:e2e`, Task 7), y `marketplace/multer-image.options.ts` (objeto de configuración de
+  multer/`FileInterceptor`, sin lógica testeable de forma útil en aislamiento). Ninguno de los
+  tres contiene lógica de dominio; los services/controllers de marketplace, storage e image NO
+  están excluidos y se cubren con tests reales (branch coverage).
+
+- **`test:e2e` necesita RustFS levantado — también en CI.** `StorageModule` es `@Global` y
+  `S3BucketInitializer.onModuleInit` hace un `CreateBucket` contra `S3_ENDPOINT` al arrancar la
+  app. El e2e monta el `AppModule` completo, así que sin un S3 escuchando TODAS las specs e2e
+  fallan en el boot con `AggregateError`/ECONNREFUSED (no solo las de marketplace). En local lo
+  cubre `pnpm infra:up`; en CI hay que declarar un **service container `rustfs`** en
+  `.github/workflows/ci.yml` (imagen `rustfs/rustfs`, `RUSTFS_ACCESS_KEY`/`RUSTFS_SECRET_KEY`
+  casando con `.env.example`, puerto `9000:9000`, sin `command`). `pnpm bootstrap` genera el
+  `.env` desde `.env.example` (`S3_ENDPOINT=http://localhost:9000`), por eso el puerto/keys deben
+  coincidir. Los tests unit (`test:cov`) NO lo necesitan (mockean prisma/storage, no montan el
+  `AppModule` con DI eager).
 
 ## Pendiente (Playwright)
 
@@ -124,4 +173,10 @@ deploy` → la imagen prod copia todo el `/app` construido (incluye el CLI). Sli
   host del `.env`; los volúmenes anónimos preservan el `node_modules` del contenedor (argon2 musl).
 - **El entorno es podman-compose** (no docker-compose): `docker compose rm` no existe; usa
   `docker compose stop` + `docker rm -f <contenedor>`. El port-forward de podman puede dar
-  "connection reset" justo al arrancar — espera unos segundos.
+  "connection reset" justo al arrancar — espera unos segundos. También: `podman-compose ps`
+  no soporta `-a` (usa `docker compose ps` a secas).
+- **`infra:up`/`infra:up:logs` listan servicios explícitamente** (no hacen `docker compose up`
+  a secas), así que añadir un servicio nuevo a `docker-compose.yml` (p. ej. `sobrebox-rustfs`
+  en Task 7) **no basta** — hay que añadirlo también a esos scripts en `package.json` o
+  `pnpm infra:up` nunca lo arranca, y cualquier consumidor eager (`StorageModule` `@Global()`
+  con `S3ClientProvider`) sigue rompiendo `test:e2e` aunque el compose ya lo declare.
