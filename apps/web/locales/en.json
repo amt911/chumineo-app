@@ -21,7 +21,8 @@
     "loginPrompt": "Log in to see your wishlist.",
     "empty": "Your wishlist is empty.",
     "remove": "Remove",
-    "maxPrice": "max {price}€"
+    "maxPrice": "max {price}€",
+    "matchesLink": "See what's on sale"
   },
   "Collections": {
     "progressTitle": "Your progress",
