@@ -64,7 +64,12 @@
     "mineEmpty": "No tienes anuncios.",
     "pause": "Pausar / Reactivar",
     "delete": "Eliminar",
-    "toastError": "Algo salió mal. Inténtalo de nuevo."
+    "toastError": "Algo salió mal. Inténtalo de nuevo.",
+    "uploadPhotos": "Añadir fotos",
+    "deletePhoto": "Borrar foto",
+    "photoLimit": "Máximo 5 fotos",
+    "photosUploaded": "Fotos subidas",
+    "photoUploadError": "No se pudieron subir las fotos"
   },
   "Profile": {
     "country": "País",

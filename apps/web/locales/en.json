@@ -64,7 +64,12 @@
     "mineEmpty": "You have no listings.",
     "pause": "Pause / Resume",
     "delete": "Delete",
-    "toastError": "Something went wrong. Please try again."
+    "toastError": "Something went wrong. Please try again.",
+    "uploadPhotos": "Add photos",
+    "deletePhoto": "Delete photo",
+    "photoLimit": "Maximum 5 photos",
+    "photosUploaded": "Photos uploaded",
+    "photoUploadError": "Couldn't upload photos"
   },
   "Profile": {
     "country": "Country",
