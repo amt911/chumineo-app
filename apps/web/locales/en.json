@@ -59,6 +59,8 @@
     "price": "Price",
     "description": "Description",
     "submit": "Publish listing",
+    "stock": "You own {owned} · {available} available to list",
+    "maxAvailable": "You can only list {available}",
     "toastCreated": "Listing published",
     "mineEmpty": "You have no listings.",
     "pause": "Pause / Resume",
@@ -73,6 +75,8 @@
   "Errors": {
     "EMAIL_NOT_VERIFIED": "Please verify your email before logging in.",
     "INVALID_CREDENTIALS": "Wrong email or password.",
+    "INSUFFICIENT_STOCK": "You don't have enough available units to list. Some may be reserved by your active listings.",
+    "UNITS_RESERVED": "You can't reduce or remove these units — some are reserved by your active listings.",
     "UNKNOWN": "Something went wrong. Please try again."
   }
 }

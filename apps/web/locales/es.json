@@ -59,6 +59,8 @@
     "price": "Precio",
     "description": "Descripción",
     "submit": "Publicar anuncio",
+    "stock": "Tienes {owned} · {available} disponibles para vender",
+    "maxAvailable": "Solo puedes vender {available}",
     "toastCreated": "Anuncio publicado",
     "mineEmpty": "No tienes anuncios.",
     "pause": "Pausar / Reactivar",
@@ -73,6 +75,8 @@
   "Errors": {
     "EMAIL_NOT_VERIFIED": "Verifica tu correo antes de iniciar sesión.",
     "INVALID_CREDENTIALS": "Email o contraseña incorrectos.",
+    "INSUFFICIENT_STOCK": "No tienes suficientes unidades disponibles para vender. Puede que algunas estén reservadas por tus anuncios activos.",
+    "UNITS_RESERVED": "No puedes reducir ni eliminar estas unidades — hay algunas reservadas por tus anuncios activos.",
     "UNKNOWN": "Algo salió mal. Inténtalo de nuevo."
   }
 }
