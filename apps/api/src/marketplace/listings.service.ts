@@ -6,11 +6,14 @@ import {
 } from '@nestjs/common';
 import {
   CreateListingDto,
+  ListingAvailabilityDto,
   ListingDto,
   ListingQueryDto,
   ListingsPageDto,
   ListingStatus,
+  MARKETPLACE_ERROR_CODES,
   UpdateListingDto,
+  listingAvailabilitySchema,
   listingSchema,
   listingsPageSchema,
 } from '@sobrebox/shared';
@@ -91,7 +94,39 @@ export class ListingsService {
       },
       _sum: { quantity: true },
     });
-    return inventory.quantity - (reserved._sum.quantity ?? 0);
+    // Clamp to 0: an inventory row that was reduced below its already-reserved
+    // units (legacy/corrupt data) must never surface as a negative "available".
+    return Math.max(0, inventory.quantity - (reserved._sum.quantity ?? 0));
+  }
+
+  // Public read used by the sell form to show owned units and cap the quantity
+  // input. Unlike availableQuantity(), a missing inventory row is not an error
+  // here — it just means 0 owned / 0 available.
+  async availability(
+    userId: string,
+    collectionItemId: string,
+  ): Promise<ListingAvailabilityDto> {
+    const inventory = await this.prisma.userInventory.findFirst({
+      where: { userId, collectionItemId },
+    });
+    if (!inventory) {
+      return listingAvailabilitySchema.parse({ owned: 0, available: 0 });
+    }
+    const reserved = await this.prisma.listing.aggregate({
+      where: {
+        sellerId: userId,
+        collectionItemId,
+        status: ListingStatus.ACTIVE,
+      },
+      _sum: { quantity: true },
+    });
+    return listingAvailabilitySchema.parse({
+      owned: inventory.quantity,
+      available: Math.max(
+        0,
+        inventory.quantity - (reserved._sum.quantity ?? 0),
+      ),
+    });
   }
 
   async create(userId: string, dto: CreateListingDto): Promise<ListingDto> {
@@ -100,9 +135,7 @@ export class ListingsService {
       dto.collectionItemId,
     );
     if (dto.quantity > available) {
-      throw new BadRequestException(
-        `Only ${available} unit(s) available to list`,
-      );
+      throw new BadRequestException(MARKETPLACE_ERROR_CODES.INSUFFICIENT_STOCK);
     }
     const created = await this.prisma.listing.create({
       data: {
@@ -228,7 +261,7 @@ export class ListingsService {
       );
       if (dto.quantity > available) {
         throw new BadRequestException(
-          `Only ${available} unit(s) available to list`,
+          MARKETPLACE_ERROR_CODES.INSUFFICIENT_STOCK,
         );
       }
     }

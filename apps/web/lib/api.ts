@@ -23,6 +23,7 @@ import type {
   ListingPhotoDto,
   CreateListingDto,
   UpdateListingDto,
+  ListingAvailabilityDto,
   UpdateProfileDto,
 } from '@sobrebox/shared';
 import { useAuthStore } from '@/lib/auth-store';
@@ -36,6 +37,7 @@ import {
   wishlistItemSchema,
   listingSchema,
   listingsPageSchema,
+  listingAvailabilitySchema,
   listingPhotoSchema,
   publicUserSchema,
 } from '@sobrebox/shared';
@@ -306,6 +308,18 @@ export async function fetchListing(id: string): Promise<ListingDto> {
   });
   if (!res.ok) throw new Error(`Failed to fetch listing: ${res.status}`);
   return listingSchema.parse(await res.json());
+}
+
+export async function fetchListingAvailability(
+  collectionItemId: string,
+  accessToken: string,
+): Promise<ListingAvailabilityDto> {
+  return listingAvailabilitySchema.parse(
+    await authedJson(
+      `/marketplace/listings/availability${buildQuery({ collectionItemId })}`,
+      accessToken,
+    ),
+  );
 }
 
 export async function createListing(

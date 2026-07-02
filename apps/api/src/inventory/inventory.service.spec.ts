@@ -1,5 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
-import { Condition } from '@sobrebox/shared';
+import { Condition, MARKETPLACE_ERROR_CODES } from '@sobrebox/shared';
 import { InventoryService } from './inventory.service';
 
 type AnyFn = jest.Mock;
@@ -15,6 +15,7 @@ interface PrismaMock {
   };
   collection: { findFirst: AnyFn; findMany: AnyFn };
   wishlistItem: { findMany: AnyFn };
+  listing: { aggregate: AnyFn };
 }
 
 const row = (over: Partial<Record<string, unknown>> = {}) => ({
@@ -44,6 +45,7 @@ function makePrisma(): PrismaMock {
     },
     collection: { findFirst: jest.fn(), findMany: jest.fn() },
     wishlistItem: { findMany: jest.fn() },
+    listing: { aggregate: jest.fn() },
   };
 }
 
@@ -105,10 +107,27 @@ describe('InventoryService', () => {
       ).rejects.toBeInstanceOf(NotFoundException);
     });
     it('updates an owned row', async () => {
-      prisma.userInventory.findFirst.mockResolvedValue({ id: 'inv1' });
+      prisma.userInventory.findFirst.mockResolvedValue({
+        id: 'inv1',
+        collectionItemId: 'ci1',
+      });
+      prisma.listing.aggregate.mockResolvedValue({ _sum: { quantity: 0 } });
       prisma.userInventory.update.mockResolvedValue(row({ quantity: 3 }));
       const dto = await service.update('u1', 'inv1', { quantity: 3 });
       expect(dto.quantity).toBe(3);
+    });
+    it('rejects dropping quantity below units reserved by the user’s own active listings', async () => {
+      prisma.userInventory.findFirst.mockResolvedValue({
+        id: 'inv1',
+        collectionItemId: 'ci1',
+      });
+      prisma.listing.aggregate.mockResolvedValue({ _sum: { quantity: 5 } });
+      await expect(
+        service.update('u1', 'inv1', { quantity: 3 }),
+      ).rejects.toMatchObject({
+        response: { message: MARKETPLACE_ERROR_CODES.UNITS_RESERVED },
+      });
+      expect(prisma.userInventory.update).not.toHaveBeenCalled();
     });
   });
 
@@ -120,12 +139,27 @@ describe('InventoryService', () => {
       );
     });
     it('deletes an owned row', async () => {
-      prisma.userInventory.findFirst.mockResolvedValue({ id: 'inv1' });
+      prisma.userInventory.findFirst.mockResolvedValue({
+        id: 'inv1',
+        collectionItemId: 'ci1',
+      });
+      prisma.listing.aggregate.mockResolvedValue({ _sum: { quantity: 0 } });
       prisma.userInventory.delete.mockResolvedValue(row());
       await service.remove('u1', 'inv1');
       expect(prisma.userInventory.delete).toHaveBeenCalledWith({
         where: { id: 'inv1' },
       });
+    });
+    it('rejects deleting a row that still has units reserved by active listings', async () => {
+      prisma.userInventory.findFirst.mockResolvedValue({
+        id: 'inv1',
+        collectionItemId: 'ci1',
+      });
+      prisma.listing.aggregate.mockResolvedValue({ _sum: { quantity: 2 } });
+      await expect(service.remove('u1', 'inv1')).rejects.toMatchObject({
+        response: { message: MARKETPLACE_ERROR_CODES.UNITS_RESERVED },
+      });
+      expect(prisma.userInventory.delete).not.toHaveBeenCalled();
     });
   });
 

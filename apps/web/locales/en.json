@@ -53,17 +53,25 @@
     "sortPriceDesc": "Price: high to low",
     "sortBestRated": "Best rated (coming soon)",
     "offerSoon": "Offers coming soon",
+    "viewPhoto": "View photo {n}",
     "createTitle": "Sell an item",
     "quantity": "Quantity",
     "condition": "Condition",
     "price": "Price",
     "description": "Description",
     "submit": "Publish listing",
+    "stock": "You own {owned} · {available} available to list",
+    "maxAvailable": "You can only list {available}",
     "toastCreated": "Listing published",
     "mineEmpty": "You have no listings.",
     "pause": "Pause / Resume",
     "delete": "Delete",
-    "toastError": "Something went wrong. Please try again."
+    "toastError": "Something went wrong. Please try again.",
+    "uploadPhotos": "Add photos",
+    "deletePhoto": "Delete photo",
+    "photoLimit": "Maximum 5 photos",
+    "photosUploaded": "Photos uploaded",
+    "photoUploadError": "Couldn't upload photos"
   },
   "Profile": {
     "country": "Country",
@@ -73,6 +81,8 @@
   "Errors": {
     "EMAIL_NOT_VERIFIED": "Please verify your email before logging in.",
     "INVALID_CREDENTIALS": "Wrong email or password.",
+    "INSUFFICIENT_STOCK": "You don't have enough available units to list. Some may be reserved by your active listings.",
+    "UNITS_RESERVED": "You can't reduce or remove these units — some are reserved by your active listings.",
     "UNKNOWN": "Something went wrong. Please try again."
   }
 }

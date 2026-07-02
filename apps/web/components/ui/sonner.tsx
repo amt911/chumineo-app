@@ -11,6 +11,7 @@ function Toaster({ ...props }: ToasterProps) {
       className="toaster group"
       richColors
       closeButton
+      position="top-center"
       {...props}
     />
   );

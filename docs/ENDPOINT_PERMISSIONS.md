@@ -1,7 +1,7 @@
 # Endpoint Permissions
 
 > Referencia autoritativa de permisos de cada endpoint HTTP del backend.
-> Última generación: 2026-07-01. **Actualiza esta tabla en el mismo cambio que añada o modifique endpoints**, y bump la fecha.
+> Última generación: 2026-07-02. **Actualiza esta tabla en el mismo cambio que añada o modifique endpoints**, y bump la fecha.
 
 Auth: `Public` (sin token) · `Optional JWT` (público pero context-aware) · `JWT` (requiere token) · `Owner-only` (dueño del recurso) · `Admin`.
 
@@ -33,6 +33,7 @@ Auth: `Public` (sin token) · `Optional JWT` (público pero context-aware) · `J
 | POST   | /marketplace/listings                     | JWT            | create listing from owned inventory item                                                                                |
 | GET    | /marketplace/listings                     | Public         | paginated ACTIVE listings (filters: item, collection, condition, country, q, price)                                     |
 | GET    | /marketplace/listings/mine                | JWT            | owner's own listings across all statuses (route declared before `:id`)                                                  |
+| GET    | /marketplace/listings/availability        | JWT            | owned + available-to-list units for a collectionItemId (query); powers the sell form (route declared before `:id`)      |
 | GET    | /marketplace/listings/:id                 | Optional JWT   | listing detail; non-ACTIVE only visible to the owner                                                                    |
 | PATCH  | /marketplace/listings/:id                 | JWT            | owner-only; 403 if not yours                                                                                            |
 | DELETE | /marketplace/listings/:id                 | JWT            | owner-only; 403 if not yours; also deletes its photos from storage                                                      |

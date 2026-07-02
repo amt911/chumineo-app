@@ -7,7 +7,7 @@ describe('ListingsController', () => {
   let service: jest.Mocked<
     Pick<
       ListingsService,
-      'create' | 'listPublic' | 'getById' | 'update' | 'remove'
+      'create' | 'listPublic' | 'getById' | 'update' | 'remove' | 'availability'
     >
   >;
   let controller: ListingsController;
@@ -19,6 +19,7 @@ describe('ListingsController', () => {
       getById: jest.fn(),
       update: jest.fn(),
       remove: jest.fn(),
+      availability: jest.fn(),
     };
     controller = new ListingsController(service as unknown as ListingsService);
   });
@@ -53,6 +54,11 @@ describe('ListingsController', () => {
   it('GET /mine forwards the current user id as owner filter', () => {
     controller.listMine(user);
     expect(service.listPublic).toHaveBeenCalledWith({ page: 1 }, 'u1');
+  });
+
+  it('GET /availability forwards the user id + collectionItemId', () => {
+    controller.availability(user, { collectionItemId: 'ci1' });
+    expect(service.availability).toHaveBeenCalledWith('u1', 'ci1');
   });
 
   it('PATCH forwards the current user id, id and dto to update', () => {
