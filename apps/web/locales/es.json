@@ -73,6 +73,16 @@
     "photosUploaded": "Fotos subidas",
     "photoUploadError": "No se pudieron subir las fotos"
   },
+  "Matches": {
+    "title": "Tus ítems deseados en venta",
+    "loginPrompt": "Inicia sesión para ver tus coincidencias.",
+    "empty": "Ninguno de tus ítems de wishlist está en venta ahora mismo.",
+    "browse": "Explorar el marketplace",
+    "inBudget": "{count} dentro de presupuesto",
+    "onSale": "{count} en venta",
+    "maxPrice": "máx {price}€",
+    "viewListing": "Ver anuncio"
+  },
   "Profile": {
     "country": "País",
     "save": "Guardar",
