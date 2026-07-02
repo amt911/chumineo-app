@@ -20,3 +20,4 @@ export * from './dto/inventory.dto';
 export * from './dto/wishlist.dto';
 export * from './dto/marketplace.dto';
 export * from './errors/auth-error-codes';
+export * from './errors/marketplace-error-codes';

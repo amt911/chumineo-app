@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import {
   AddInventoryItemDto,
@@ -9,6 +13,8 @@ import {
   collectionProgressSummarySchema,
   CollectionProgressDto,
   collectionProgressSchema,
+  ListingStatus,
+  MARKETPLACE_ERROR_CODES,
 } from '@sobrebox/shared';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -82,6 +88,21 @@ export class InventoryService {
     return this.toDto(row);
   }
 
+  private async reservedQuantity(
+    userId: string,
+    collectionItemId: string,
+  ): Promise<number> {
+    const reserved = await this.prisma.listing.aggregate({
+      where: {
+        sellerId: userId,
+        collectionItemId,
+        status: ListingStatus.ACTIVE,
+      },
+      _sum: { quantity: true },
+    });
+    return reserved._sum.quantity ?? 0;
+  }
+
   async update(
     userId: string,
     id: string,
@@ -89,9 +110,19 @@ export class InventoryService {
   ): Promise<InventoryItemDto> {
     const owned = await this.prisma.userInventory.findFirst({
       where: { id, userId },
-      select: { id: true },
+      select: { id: true, collectionItemId: true },
     });
     if (!owned) throw new NotFoundException('Inventory item not found');
+
+    if (dto.quantity !== undefined) {
+      const reserved = await this.reservedQuantity(
+        userId,
+        owned.collectionItemId,
+      );
+      if (dto.quantity < reserved) {
+        throw new BadRequestException(MARKETPLACE_ERROR_CODES.UNITS_RESERVED);
+      }
+    }
 
     const row = await this.prisma.userInventory.update({
       where: { id },
@@ -107,9 +138,18 @@ export class InventoryService {
   async remove(userId: string, id: string): Promise<void> {
     const owned = await this.prisma.userInventory.findFirst({
       where: { id, userId },
-      select: { id: true },
+      select: { id: true, collectionItemId: true },
     });
     if (!owned) throw new NotFoundException('Inventory item not found');
+
+    const reserved = await this.reservedQuantity(
+      userId,
+      owned.collectionItemId,
+    );
+    if (reserved > 0) {
+      throw new BadRequestException(MARKETPLACE_ERROR_CODES.UNITS_RESERVED);
+    }
+
     await this.prisma.userInventory.delete({ where: { id } });
   }
 

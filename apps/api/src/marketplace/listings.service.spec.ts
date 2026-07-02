@@ -3,7 +3,11 @@ import {
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
-import { Condition, ListingStatus } from '@sobrebox/shared';
+import {
+  Condition,
+  ListingStatus,
+  MARKETPLACE_ERROR_CODES,
+} from '@sobrebox/shared';
 import { ListingsService } from './listings.service';
 
 function makePrisma() {
@@ -65,7 +69,7 @@ describe('ListingsService.create', () => {
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('400s when quantity exceeds what is available', async () => {
+  it('400s with the INSUFFICIENT_STOCK code when quantity exceeds available', async () => {
     const prisma = makePrisma();
     prisma.userInventory.findFirst.mockResolvedValue({ quantity: 2 });
     prisma.listing.aggregate.mockResolvedValue({ _sum: { quantity: 2 } });
@@ -80,7 +84,31 @@ describe('ListingsService.create', () => {
         condition: Condition.MINT,
         price: '19.99',
       }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    ).rejects.toMatchObject({
+      response: { message: MARKETPLACE_ERROR_CODES.INSUFFICIENT_STOCK },
+    });
+  });
+
+  it('never surfaces a negative available count (clamps to 0) when reserved exceeds owned', async () => {
+    const prisma = makePrisma();
+    // Owned 1 but 5 already reserved by active listings -> raw available is -4.
+    prisma.userInventory.findFirst.mockResolvedValue({ quantity: 1 });
+    prisma.listing.aggregate.mockResolvedValue({ _sum: { quantity: 5 } });
+    const service = new ListingsService(
+      prisma as never,
+      makeStorage() as never,
+    );
+    // A stable code is thrown — no negative number leaks into the message.
+    await expect(
+      service.create('u1', {
+        collectionItemId: 'ci1',
+        quantity: 1,
+        condition: Condition.MINT,
+        price: '19.99',
+      }),
+    ).rejects.toMatchObject({
+      response: { message: MARKETPLACE_ERROR_CODES.INSUFFICIENT_STOCK },
+    });
   });
 
   it('creates a listing when quantity is available', async () => {
@@ -99,6 +127,49 @@ describe('ListingsService.create', () => {
       price: '19.99',
     });
     expect(dto.id).toBe('l1');
+  });
+});
+
+describe('ListingsService.availability', () => {
+  it('returns owned and available (owned minus active reserved)', async () => {
+    const prisma = makePrisma();
+    prisma.userInventory.findFirst.mockResolvedValue({ quantity: 10 });
+    prisma.listing.aggregate.mockResolvedValue({ _sum: { quantity: 3 } });
+    const service = new ListingsService(
+      prisma as never,
+      makeStorage() as never,
+    );
+    expect(await service.availability('u1', 'ci1')).toEqual({
+      owned: 10,
+      available: 7,
+    });
+  });
+
+  it('returns 0/0 when the item is not in the seller inventory', async () => {
+    const prisma = makePrisma();
+    prisma.userInventory.findFirst.mockResolvedValue(null);
+    const service = new ListingsService(
+      prisma as never,
+      makeStorage() as never,
+    );
+    expect(await service.availability('u1', 'ci1')).toEqual({
+      owned: 0,
+      available: 0,
+    });
+  });
+
+  it('clamps available to 0 when reserved exceeds owned', async () => {
+    const prisma = makePrisma();
+    prisma.userInventory.findFirst.mockResolvedValue({ quantity: 1 });
+    prisma.listing.aggregate.mockResolvedValue({ _sum: { quantity: 5 } });
+    const service = new ListingsService(
+      prisma as never,
+      makeStorage() as never,
+    );
+    expect(await service.availability('u1', 'ci1')).toEqual({
+      owned: 1,
+      available: 0,
+    });
   });
 });
 

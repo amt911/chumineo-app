@@ -16,6 +16,35 @@ export const createListingSchema = z.object({
 });
 export type CreateListingDto = z.infer<typeof createListingSchema>;
 
+// Form-side variant of createListingSchema: `collectionItemId` comes from the
+// route (not the form), and `quantity` carries UI-friendly messages. The API
+// still validates the full createListingSchema, so this stays a strict subset.
+export const createListingFormSchema = createListingSchema
+  .omit({ collectionItemId: true })
+  .extend({
+    quantity: z
+      .number({ invalid_type_error: 'Enter a quantity' })
+      .int('Whole numbers only')
+      .positive('Must be at least 1'),
+  });
+export type CreateListingFormValues = z.infer<typeof createListingFormSchema>;
+
+// Query + response for "how many of this item can I list?" — owned units and
+// the subset available to list (owned minus units reserved by the seller's own
+// ACTIVE listings). Powers the sell form's stock hint and quantity cap.
+export const listingAvailabilityQuerySchema = z.object({
+  collectionItemId: z.string().min(1),
+});
+export type ListingAvailabilityQueryDto = z.infer<
+  typeof listingAvailabilityQuerySchema
+>;
+
+export const listingAvailabilitySchema = z.object({
+  owned: z.number().int().nonnegative(),
+  available: z.number().int().nonnegative(),
+});
+export type ListingAvailabilityDto = z.infer<typeof listingAvailabilitySchema>;
+
 export const updateListingSchema = z
   .object({
     quantity: z.number().int().positive().optional(),
