@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import {
   ListingStatus,
   MatchesResponseDto,
   MatchItemDto,
   MatchListingDto,
   WishlistPriority,
+  matchListingSchema,
   matchesResponseSchema,
 } from '@sobrebox/shared';
 import { PrismaService } from '../prisma/prisma.service';
@@ -17,31 +17,8 @@ const PRIORITY_RANK: Record<WishlistPriority, number> = {
   [WishlistPriority.LOW]: 2,
 };
 
-const money = (d: Prisma.Decimal): string => Number(d.toString()).toFixed(2);
-
-type ListingRow = {
-  id: string;
-  quantity: number;
-  condition: string;
-  price: Prisma.Decimal;
-  description: string | null;
-  status: string;
-  createdAt: Date;
-  collectionItemId: string;
-  seller: {
-    username: string;
-    country: string | null;
-    avatarUrl: string | null;
-  };
-  collectionItem: {
-    id: string;
-    name: string;
-    rarity: string;
-    imageUrl: string | null;
-    collection: { slug: string; name: string };
-  };
-  photos: { id: string; key: string }[];
-};
+const money = (d: { toString(): string }): string =>
+  Number(d.toString()).toFixed(2);
 
 @Injectable()
 export class MatchesService {
@@ -50,19 +27,43 @@ export class MatchesService {
     private readonly storage: StorageService,
   ) {}
 
-  private toListingDto(row: ListingRow, inBudget: boolean): MatchListingDto {
-    return {
+  private toListingDto(
+    row: {
+      id: string;
+      quantity: number;
+      condition: string;
+      price: { toString(): string };
+      description: string | null;
+      status: string;
+      createdAt: Date;
+      seller: {
+        username: string;
+        country: string | null;
+        avatarUrl: string | null;
+      };
+      collectionItem: {
+        id: string;
+        name: string;
+        rarity: string;
+        imageUrl: string | null;
+        collection: { slug: string; name: string };
+      };
+      photos: { id: string; key: string }[];
+    },
+    inBudget: boolean,
+  ): MatchListingDto {
+    return matchListingSchema.parse({
       id: row.id,
       quantity: row.quantity,
-      condition: row.condition as MatchListingDto['condition'],
+      condition: row.condition,
       price: money(row.price),
       description: row.description,
-      status: row.status as MatchListingDto['status'],
+      status: row.status,
       createdAt: row.createdAt.toISOString(),
       item: {
         id: row.collectionItem.id,
         name: row.collectionItem.name,
-        rarity: row.collectionItem.rarity as MatchListingDto['item']['rarity'],
+        rarity: row.collectionItem.rarity,
         imageUrl: row.collectionItem.imageUrl,
       },
       collection: row.collectionItem.collection,
@@ -72,7 +73,7 @@ export class MatchesService {
         url: this.storage.getPublicUrl(p.key),
       })),
       inBudget,
-    };
+    });
   }
 
   async getMatches(userId: string): Promise<MatchesResponseDto> {
@@ -83,7 +84,7 @@ export class MatchesService {
     if (wishlist.length === 0) return [];
 
     const collectionItemIds = wishlist.map((w) => w.collectionItemId);
-    const listings = (await this.prisma.listing.findMany({
+    const listings = await this.prisma.listing.findMany({
       where: {
         collectionItemId: { in: collectionItemIds },
         status: ListingStatus.ACTIVE,
@@ -95,9 +96,9 @@ export class MatchesService {
         collectionItem: { include: { collection: true } },
         photos: true,
       },
-    })) as unknown as ListingRow[];
+    });
 
-    const byItem = new Map<string, ListingRow[]>();
+    const byItem = new Map<string, typeof listings>();
     for (const l of listings) {
       const bucket = byItem.get(l.collectionItemId);
       if (bucket) bucket.push(l);

@@ -146,6 +146,9 @@ describe('MatchesService', () => {
     expect(res[0].maxPrice).toBe('5.50');
     expect(res[0].cheapestPrice).toBe('5.50');
     expect(res[0].listings[0].price).toBe('5.50');
+    // price === maxPrice must count as in-budget, i.e. the comparison is
+    // `<=` (Decimal#lte), not a strict `<`.
+    expect(res[0].listings[0].inBudget).toBe(true);
   });
 
   it('sorts by priority, then in-budget-first, then cheapest', async () => {
@@ -180,6 +183,29 @@ describe('MatchesService', () => {
       'ciHiOver',
       'ciLow',
     ]);
+  });
+
+  it('breaks ties by cheapest price when priority and in-budget status match', async () => {
+    prisma.wishlistItem.findMany.mockResolvedValue([
+      wishlistRow({
+        id: 'wDear',
+        collectionItemId: 'ciDear',
+        priority: WishlistPriority.HIGH,
+        maxPrice: null,
+      }),
+      wishlistRow({
+        id: 'wCheap',
+        collectionItemId: 'ciCheap',
+        priority: WishlistPriority.HIGH,
+        maxPrice: null,
+      }),
+    ]);
+    prisma.listing.findMany.mockResolvedValue([
+      listingRow({ id: 'a', collectionItemId: 'ciCheap', price: '5.00' }),
+      listingRow({ id: 'b', collectionItemId: 'ciDear', price: '20.00' }),
+    ]);
+    const res = await service.getMatches('me');
+    expect(res.map((m) => m.item.id)).toEqual(['ciCheap', 'ciDear']);
   });
 
   it('queries only active listings from other sellers for wishlisted items', async () => {
